@@ -1,0 +1,129 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title> Altizure 2.1 Add project </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  </head>
+  <body>
+    <div id="page-content"></div>
+    <script type="text/javascript" src="https://www.altizure.cn/sdk"></script>
+    <script>
+      let options = {
+        altizureApi:{
+          key: '7MkQf8UggsPaadvrlKALspJWZejZAJOLHn3cnIy'
+        },
+        camera: {
+          poseTo: { alt:1200,
+            lat:22.538388886344876,
+            lng:113.94255600866971 },
+          flyTo: { alt:1020.0739295752213,
+            lat:22.538388886344876,
+            lng:113.94255600866971,
+            north:-27.271585092584015,
+            tilt:74.7023627906978 }
+        },
+        renderItems: {
+          earth: false,
+          earthUseTexture: false,
+          featureInView: false,
+          orbitRing: false
+        }
+      }
+
+      let sandbox = new altizure.Sandbox('page-content', options)
+
+      // add project: https://www.altizure.com/project/58428f1d97b73e0b090675cd/model
+      // at the default GPS position
+      // Note: your developer key must have access to the project, and the project must have valid GPS information.
+      // sandbox.add('AltizureProjectMarker', {pid: '5849104597b73e0b090c01e8'})
+
+      // with an arbitrary position (longitude, latitude, altitude)
+      sandbox.add('AltizureProjectMarker', {
+        pid: '5907f9725a6dbd3af41a13bb',
+        pose: {
+          position: {lng: 113.94420875334851, lat: 22.53672047469201, alt: 0}
+        }
+      })
+
+      let t0 = new altizure.TextTagMarker({
+        // text string
+        text: '2017-05-02',
+        // text style
+        textStyle: {
+          fillStyle: 'rgb(255, 255, 255)',
+          font: 'normal 500 24px Arial',
+          outlineWidth: 2,
+          outlineStyle: 'rgb(0, 0, 0)'
+        },
+
+        // icon position
+        position: {
+          "lng": 113.94020875334851,
+          "lat": 22.53672047469201,
+          "alt": 0
+        },
+        // scene
+        sandbox: sandbox,
+        scale: 6 // icon size
+      })
+
+      sandbox.add('AltizureProjectMarker', {
+        pid: '5971b024f444896164baa5a1',
+        pose: {
+          position: {lng: 113.94420875334851, lat: 22.54272047469201, alt: 0}
+        }
+      })
+
+      let t1 = new altizure.TextTagMarker({
+        // text string
+        text: '2017-07-28', //2017-05-02
+        // text style
+        textStyle: {
+          fillStyle: 'rgb(255, 255, 255)',
+          font: 'normal 500 24px Arial',
+          outlineWidth: 2,
+          outlineStyle: 'rgb(0, 0, 0)'
+        },
+
+        // icon position
+        position: {
+          "lng": 113.94020875334851,
+          "lat": 22.54272047469201,
+          "alt": 0
+        },
+        // scene
+        sandbox: sandbox,
+        scale: 6 // icon size
+      })
+
+      sandbox.add('AltizureProjectMarker', {
+        pid: '59e9ee079e3fa71ac066e530',
+        pose: {
+          position: {lng: 113.94420875334851, lat: 22.54872047469201, alt: 0}
+        }
+      })
+
+      let t2 = new altizure.TextTagMarker({
+        // text string
+        text: '2017-10-20', //2017-05-02
+        // text style
+        textStyle: {
+          fillStyle: 'rgb(255, 255, 255)',
+          font: 'normal 500 24px Arial',
+          outlineWidth: 2,
+          outlineStyle: 'rgb(0, 0, 0)'
+        },
+
+        // icon position
+        position: {
+          "lng": 113.94020875334851,
+          "lat": 22.54872047469201,
+          "alt": 0
+        },
+        // scene
+        sandbox: sandbox,
+        scale: 6 // icon size
+      })
+    </script>
+  </body>
+</html>
