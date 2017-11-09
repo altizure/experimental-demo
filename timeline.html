@@ -3,11 +3,153 @@
     <meta charset="utf-8">
     <title> 上海奉贤 11-01 地块变迁 </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="./css/style.css">
   </head>
   <body>
     <div id="page-content"></div>
     <script type="text/javascript" src="https://www.altizure.cn/sdk"></script>
     <script>
+
+      function setDefaultValue(vari, defaultValue) {
+        if (!vari) {
+          return defaultValue
+        }
+        const defautlProps = Object.getOwnPropertyNames(defaultValue)
+        for (let prop in defautlProps) {
+          if (!vari.hasOwnProperty(prop)) {
+            vari[prop] = defaultValue[prop]
+          }
+        }
+        return vari
+      }
+
+      function timelineGrid(sandbox, projects, cameraPos, projOffset, labelOffset) {
+        if (!sandbox) {
+          console.log('No sandbox to render the grid timeline')
+          return
+        }
+        if (!projects || projects.length == 0) {
+          console.log('empty project')
+          return
+        }
+
+        cameraPos = setDefaultValue(cameraPos, {
+          lng: 113.94255600866971,
+          lat: 22.538388886344876,
+          alt: 1020,
+          north:-27.271585092584015,
+          tilt:74.7023627906978
+        })
+
+        console.log(cameraPos)
+
+        projOffset = setDefaultValue(projOffset, {
+          lng: 0.009,
+          lat: 0.006
+        })
+
+        console.log(projOffset)
+
+        labelOffset = setDefaultValue(labelOffset, {
+          lng: -0.004,
+          lat: 0
+        })
+
+        console.log(labelOffset)
+
+        const centerLat = cameraPos.lat
+        const centerLng = cameraPos.lng
+        const cameraAlt = cameraPos.lat
+        const projLatOffset = projOffset.lat // in y dir
+        const projLngOffset = projOffset.lng // in x dir
+        const labelLatOffset = labelOffset.lat
+        const labelLngOffset = labelOffset.lng
+
+        sandbox.camera.flyTo(cameraPos)
+
+        const projCount = projects.length
+        const projCol = Math.ceil(Math.sqrt(projCount))
+        const projRow = projCol
+
+        console.log(projCount, projCol, projRow)
+
+        const projLatOrigin = centerLat - projRow * 0.5 * projLatOffset
+        const projLngOrigin = centerLng - projCol * 0.5 * projLngOffset
+        let labels = []
+
+        for (let i = 0; i < projRow; ++i) {
+          for (let j = 0; j < projCol; ++j) {
+            let idx = i*projCol + j
+
+            if (idx >= projCount) {
+              continue
+            }
+
+            const projLat = projLatOrigin + i * projLatOffset
+            const projLng = projLngOrigin + j * projLngOffset
+
+            const labelLat = projLat + labelLatOffset
+            const labelLng = projLng + labelLngOffset
+
+            const proj = projects[idx]
+            sandbox.add('AltizureProjectMarker', {
+              pid: proj.pid,
+              pose: {
+                position: {lng: projLng, lat: projLat, alt: 0}
+              }
+            }).then((m) => {
+              console.log(m)
+            })
+
+            // console.log(projMarker)
+
+            let label = new altizure.TextTagMarker({
+              // text string
+              text: proj.text,
+              // text style
+              textStyle: {
+                fillStyle: 'rgb(255, 255, 255)',
+                font: 'normal 500 24px Arial',
+                outlineWidth: 2,
+                outlineStyle: 'rgb(0, 0, 0)'
+              },
+
+              // icon position
+              position: {
+                "lng": labelLng,
+                "lat": labelLat,
+                "alt": 0
+              },
+              // scene
+              sandbox: sandbox,
+              scale: 6 // icon size
+            })
+            labels.push(label)
+          }
+        }
+
+        let titleLabel = new altizure.TextTagMarker({
+          // text string
+          text: '奉贤 11-01 地块变迁图 ©伊比路',
+          // text style
+          textStyle: {
+            fillStyle: 'rgb(255, 255, 255)',
+            font: 'normal 500 24px Arial',
+            outlineWidth: 2,
+            outlineStyle: 'rgb(0, 0, 0)'
+          },
+
+          // icon position
+          position: {
+            "lng": centerLng + labelLngOffset,
+            "lat": projLatOrigin + labelLngOffset, // offset in lat direction
+            "alt": 0
+          },
+          // scene
+          sandbox: sandbox,
+          scale: 10 // icon size
+        })
+      }
 
       let projects = [
         // {pid: '589db9acb504a864ad62f538', text: '拆迁 2017-02-10'},
@@ -66,89 +208,17 @@
 
       let sandbox = new altizure.Sandbox('page-content', options)
 
-      let projCount = projects.length
-      let projCol = Math.floor(Math.sqrt(projCount))
-      let projRow = projCol
-
-      if (projCol*projRow < projCount) {
-        projCol += 1
-      }
-      if (projCol*projRow < projCount) {
-        projRow += 1
-      }
-
-      let projLatOrigin = centerLat - projRow * 0.5 * projLatOffset
-      let projLngOrigin = centerLng - projCol * 0.5 * projLngOffset
-      let labels = []
-
-      for (let i = 0; i < projRow; ++i) {
-        for (let j = 0; j < projCol; ++j) {
-          let idx = i*projCol + j
-
-          if (idx >= projCount) {
-            continue
-          }
-
-          let projLat = projLatOrigin + i * projLatOffset
-          let projLng = projLngOrigin + j * projLngOffset
-
-          let labelLat = projLat + labelLatOffset
-          let labelLng = projLng + labelLngOffset
-
-          let proj = projects[idx]
-          sandbox.add('AltizureProjectMarker', {
-            pid: proj.pid,
-            pose: {
-              position: {lng: projLng, lat: projLat, alt: 0}
-            }
-          })
-
-          let label = new altizure.TextTagMarker({
-            // text string
-            text: proj.text,
-            // text style
-            textStyle: {
-              fillStyle: 'rgb(255, 255, 255)',
-              font: 'normal 500 24px Arial',
-              outlineWidth: 2,
-              outlineStyle: 'rgb(0, 0, 0)'
-            },
-
-            // icon position
-            position: {
-              "lng": labelLng,
-              "lat": labelLat,
-              "alt": 0
-            },
-            // scene
-            sandbox: sandbox,
-            scale: 6 // icon size
-          })
-          labels.push(label)
-        }
-
-        let titleLabel = new altizure.TextTagMarker({
-          // text string
-          text: '奉贤 11-01 地块变迁图 ©伊比路',
-          // text style
-          textStyle: {
-            fillStyle: 'rgb(255, 255, 255)',
-            font: 'normal 500 24px Arial',
-            outlineWidth: 2,
-            outlineStyle: 'rgb(0, 0, 0)'
-          },
-
-          // icon position
-          position: {
-            "lng": centerLng + labelLngOffset,
-            "lat": projLatOrigin + labelLngOffset, // offset in lat direction
-            "alt": 0
-          },
-          // scene
-          sandbox: sandbox,
-          scale: 10 // icon size
-        })
-      }
+      timelineGrid(sandbox, projects, {
+        lng: 113.94255600866971,
+        lat: 22.538388886344876,
+        alt: 1020
+      }, {
+        lng: 0.009,
+        lat: 0.006
+      }, {
+        lng: -0.004,
+        lat: 0
+      })
     </script>
   </body>
 </html>
