@@ -3,152 +3,230 @@
     <meta charset="utf-8">
     <title> 上海奉贤 11-01 地块变迁 </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="./css/style.css">
+    <script type="text/javascript" src="https://www.altizure.cn/sdk"></script>
+    <script type="text/javascript" src="/js/timeline.js"></script>
   </head>
   <body>
-    <div id="page-content"></div>
-    <script type="text/javascript" src="https://www.altizure.cn/sdk"></script>
+    <div id="root">
+      <div class="hud">
+        <div class="component">
+          <div class="componentLabel">Timeline</div>
+          <div class="slidecontainer">
+            <input type="range" min="0" max="100" value="0" class="slider" id="timelineRange">
+          </div>
+          <button class="button button1" id="playbutton">Play</button>
+        </div>
+        <div class="component">
+          <div class="componentLabel">Camera</div>
+          <button class="button button1" id="orbitbutton">Orbit</button>
+        </div>
+        <!-- <div id="pickpoint" class="component" style="visibility: hidden">
+          <div class="componentLabel">Pick</div>
+          <label class="switch">
+            <input type="checkbox" id="pickSwitch">
+            <span class="switchSlider"></span>
+          </label>
+          <div id="pickpointText" class="componentText"> N/A </div>
+        </div> -->
+      </div>
+      <div id="page-content"></div>
+    </div>
+
     <script>
+      function onPageLoaded () {
+        let projects = [
+          // {pid: '589db9acb504a864ad62f538', text: '拆迁 2017-02-10'},
+          {pid: '589a79f0b76d7a3780a5619f', text: '2017-02-08', ref: {lng: 113.94189352396018, lat: 22.53638688670419, alt: 34.39766321776343}},
+          {pid: '58b9825d03f7216ab68c8f40', text: '2017-03-03', ref: {lng: 113.9419203127062, lat: 22.53641771739026, alt: 34.00205153522263}},
+          {pid: '58d38790f387231e6c934618', text: '2017-03-23', ref: {lng: 113.94189655647847, lat: 22.53645140179568, alt: 34.00917951663468}},
+          {pid: '58f0acf13353456af3bc07f9', text: '2017-04-14', ref: {lng: 113.94189759971313, lat: 22.53645329412564, alt: 34.01442040577835}}, // 4
+          {pid: '5907f9725a6dbd3af41a13bb', text: '2017-05-02', ref: {lng: 113.9418473808014, lat: 22.536709284368563, alt: 33.62333332827946}}, // 6
+          {pid: '59226d12b8cfc91d91c6e3c4', text: '2017-05-22', ref: {lng: 113.94189198491647, lat: 22.536548123112684, alt: 34.07053984053572}},
+          {pid: '593161a1772c3e6384a21e0a', text: '2017-06-02', ref: {lng: 113.9419062982524, lat: 22.53654179771463, alt: 34.16806538920764}},
+          {pid: '5940eccdc2d9527ab86db784', text: '2017-06-14', ref: {lng: 113.94190373276571, lat: 22.536533266245787, alt: 34.116880604088145}},
+          {pid: '5950d6b941b158666ac8ef0d', text: '2017-06-26', ref: {lng: 113.94183897254884, lat: 22.536536147899728, alt: 33.51158283499326}},
+          {pid: '595dd8f80c2e073b37a3e901', text: '2017-07-06', ref: {lng: 113.94190558695495, lat: 22.53652710162415, alt: 34.0994729574}},
+          {pid: '59b72e6ad5e441395a688086', text: '2017-07-12', ref: {lng: 113.94190055085868, lat: 22.536533899386146, alt: 34.08803381417399}}, // 12
+          {pid: '5971b024f444896164baa5a1', text: '2017-07-21', ref: {lng: 113.94188307115813, lat: 22.536519916014168, alt: 33.96328712605366}}, // 13
+          {pid: '597abc586c6ad2616b38c79e', text: '2017-07-28', ref: {lng: 113.94188217153695, lat: 22.536527228992515, alt: 33.911104090373726}},
+          {pid: '598d4bb72d6ac94215a0d653', text: '2017-08-11', ref: {lng: 113.9419041098895, lat: 22.536561810164756, alt: 34.104115182584145}},
+          {pid: '59b5fd94d5e441395a608959', text: '2017-08-22', ref: {lng: 113.94190211754112, lat: 22.536550949821933, alt: 34.14410366061227}},
+          {pid: '59b64aa3d5e441395a6350ff', text: '2017-08-30', ref: {lng: 113.94184524630573, lat: 22.53650668532423, alt: 33.54295036445974}},
+          {pid: '59b5e063d5e441395a5f932b', text: '2017-09-08', ref: {lng: 113.94184333322892, lat: 22.53650420959841, alt: 33.508588629247555}},
+          {pid: '59c49a8bf2348f2d1cf72823', text: '2017-09-22', ref: {lng: 113.94187802115968, lat: 22.536591924238284, alt: 33.623051095655896}},
+          {pid: '59ccb9675fba3242652c908b', text: '2017-09-28', ref: {lng: 113.94191728393578, lat: 22.53653716640132, alt: 34.159755129590685}}, // 20
+          {pid: '59e9ee079e3fa71ac066e530', text: '2017-10-20', ref: {lng: 113.94190633723107, lat: 22.536606158186217, alt: 33.90020284306385}}, // 22
+          {pid: '5a0014dc1ef61f5d21d6b940', text: '2017-11-06', ref: {lng: 113.94194849790229, lat: 22.5365989955063, alt: 33.84896176030099}} // 24
+        ]
 
-      let projects = [
-        // {pid: '589db9acb504a864ad62f538', text: '拆迁 2017-02-10'},
-        {pid: '589a79f0b76d7a3780a5619f', text: '2017-02-08'},
-        {pid: '58b9825d03f7216ab68c8f40', text: '2017-03-03'},
-        {pid: '58d38790f387231e6c934618', text: '2017-03-23'},
-        {pid: '58f0acf13353456af3bc07f9', text: '2017-04-14'}, // 4
-        {pid: '5907f9725a6dbd3af41a13bb', text: '2017-05-02'}, // 6
-        {pid: '59226d12b8cfc91d91c6e3c4', text: '2017-05-22'},
-        {pid: '593161a1772c3e6384a21e0a', text: '2017-06-02'},
-        {pid: '5940eccdc2d9527ab86db784', text: '2017-06-14'},
-        {pid: '5950d6b941b158666ac8ef0d', text: '2017-06-26'},
-        {pid: '595dd8f80c2e073b37a3e901', text: '2017-07-06'},
-        {pid: '59b72e6ad5e441395a688086', text: '2017-07-12'}, // 12
-        {pid: '5971b024f444896164baa5a1', text: '2017-07-21'}, // 13
-        {pid: '597abc586c6ad2616b38c79e', text: '2017-07-28'},
-        {pid: '598d4bb72d6ac94215a0d653', text: '2017-08-11'},
-        {pid: '59b5fd94d5e441395a608959', text: '2017-08-22'},
-        {pid: '59b64aa3d5e441395a6350ff', text: '2017-08-30'},
-        {pid: '59b5e063d5e441395a5f932b', text: '2017-09-08'},
-        {pid: '59c49a8bf2348f2d1cf72823', text: '2017-09-22'},
-        {pid: '59ccb9675fba3242652c908b', text: '2017-09-28'}, // 20
-        {pid: '59e9ee079e3fa71ac066e530', text: '2017-10-20'}, // 22
-        {pid: '5a0014dc1ef61f5d21d6b940', text: '2017-11-06'} // 24
-      ]
-
-      let centerLat = 22.538388886344876
-      let centerLng = 113.94255600866971
-      let cameraAlt = 1020
-      let projLatOffset = 0.006 // in y dir
-      let projLngOffset = 0.009 // in x dir
-      let labelLatOffset = 0
-      let labelLngOffset = -0.004
-
-      let options = {
-        altizureApi:{
-          key: '7MkQf8UggsPaadvrlKALspJWZejZAJOLHn3cnIy'
-        },
-        camera: {
-          poseTo: { alt:1200,
-            lat:centerLat,
-            lng:centerLng },
-          flyTo: { alt:cameraAlt,
-            lat:centerLat,
-            lng:centerLng,
-            north:-27.271585092584015,
-            tilt:74.7023627906978 }
-        },
-        renderItems: {
-          earth: false,
-          earthUseTexture: false,
-          featureInView: false,
-          orbitRing: false
+        let options = {
+          altizureApi:{
+            key: '7MkQf8UggsPaadvrlKALspJWZejZAJOLHn3cnIy'
+          },
+          camera: {
+            poseTo: { alt:1200,
+              lat:22.538388886344876,
+              lng:113.94255600866971 },
+            flyTo: { alt:1020,
+              lat:22.538388886344876,
+              lng:113.94255600866971,
+              north:-27.271585092584015,
+              tilt:74.7023627906978 }
+          },
+          renderItems: {
+            earth: true,
+            earthUseTexture: false,
+            featureInView: false,
+            orbitRing: false
+          }
         }
-      }
 
-      let sandbox = new altizure.Sandbox('page-content', options)
+        let sandbox = new altizure.Sandbox('page-content', options)
 
-      let projCount = projects.length
-      let projCol = Math.floor(Math.sqrt(projCount))
-      let projRow = projCol
+        let slider = document.getElementById("timelineRange")
+        slider.setAttribute('min', 0)
+        slider.setAttribute('max', projects.length-1)
+        let pagecontent = document.getElementById("page-content")
+        let playButton = document.getElementById("playbutton")
+        let timelineAnimation = null
+        let orbitButton = document.getElementById("orbitbutton")
+        let orbitAnimation = null
 
-      if (projCol*projRow < projCount) {
-        projCol += 1
-      }
-      if (projCol*projRow < projCount) {
-        projRow += 1
-      }
+        timelineLayout(sandbox, projects, {
+          cameraPos: {
+            lng: 113.94255600866971,
+            lat: 22.538388886344876,
+            alt: 1020
+          },
+          projOffset: {
+            lng: 0,
+            lat: 0
+          },
+          labelOffset: {
+            lng: 0,
+            lat: -0.003
+          },
+          defaultVisible: false,
+          title: '奉贤 11-01 地块变迁图 ©伊比路'
+        }).then((entities) => {
+          console.log('scene loaded')
 
-      let projLatOrigin = centerLat - projRow * 0.5 * projLatOffset
-      let projLngOrigin = centerLng - projCol * 0.5 * projLngOffset
-      let labels = []
-
-      for (let i = 0; i < projRow; ++i) {
-        for (let j = 0; j < projCol; ++j) {
-          let idx = i*projCol + j
-
-          if (idx >= projCount) {
-            continue
+          // hide all elements
+          for (let idx in entities) {
+            let ent = entities[idx]
+            ent.proj.visible = false
+            ent.label.visible = false
           }
 
-          let projLat = projLatOrigin + i * projLatOffset
-          let projLng = projLngOrigin + j * projLngOffset
+          function setProjectEntityVisible(ents, idx, vis) {
+            console.log('Set visible for entity', idx)
+            for (let i in ents) {
+              let ent = ents[i]
+              if (i === idx) {
+                ent.proj.visible = vis
+                ent.label.visible = vis
+              } else {
+                ent.proj.visible = false
+                ent.label.visible = false
+              }
+            }
+          }
 
-          let labelLat = projLat + labelLatOffset
-          let labelLng = projLng + labelLngOffset
+          // Update the current slider value (each time you drag the slider handle)
+          slider.oninput = function () {
+            console.log(this.value)
+            setProjectEntityVisible(entities, this.value, true)
+          }
 
-          let proj = projects[idx]
-          sandbox.add('AltizureProjectMarker', {
-            pid: proj.pid,
-            pose: {
-              position: {lng: projLng, lat: projLat, alt: 0}
+          slider.setAttribute('value', 0)
+          setProjectEntityVisible(entities, '0', true)
+
+          // Set pick switch
+          let pickSwitch = document.getElementById('pickSwitch')
+          if (pickSwitch) {
+            function pickHandler (event) {
+              console.log(event)
+              let pt = sandbox.pickOnProjects(event)
+
+              console.log(pt)
+              if (pt) {
+                pickpointText.innerHTML = `ref: {lng: ${pt.lng}, lat: ${pt.lat}, alt: ${pt.alt}}`
+              } else {
+                pickpointText.innerHTML = 'Cannot pick points'
+              }
+
+              if (!pt) {
+                pt = sandbox.pick(event)
+              }
+
+              if (!pt) {
+                return
+              }
+            }
+            let pickpointText = document.getElementById('pickpointText')
+
+            pickSwitch.onchange = function () {
+              console.log(this.checked)
+              if (this.checked) {
+                pagecontent.addEventListener('click', pickHandler)
+              } else {
+                pagecontent.removeEventListener('click', pickHandler)
+              }
+            }
+          }
+
+
+          // setup timeline animation
+          playButton.innerHTML = 'Play'
+          playButton.addEventListener("click", () => {
+            if (playButton.innerHTML === 'Play') {
+              if (timelineAnimation) {
+                clearInterval(timelineAnimation)
+              }
+              timelineAnimation = setInterval(function() {
+                let svalue = parseInt(slider.value)
+                svalue = (svalue + 1) % projects.length
+                setProjectEntityVisible(entities, svalue.toString(), true)
+                // slider.setAttribute('value', svalue)
+                slider.value = svalue
+                console.log('Animate timeline', svalue)
+              }, 3000)
+              playButton.innerHTML = 'Stop'
+            } else {
+              if (timelineAnimation) {
+                clearInterval(timelineAnimation)
+              }
+              playButton.innerHTML = 'Play'
             }
           })
 
-          let label = new altizure.TextTagMarker({
-            // text string
-            text: proj.text,
-            // text style
-            textStyle: {
-              fillStyle: 'rgb(255, 255, 255)',
-              font: 'normal 500 24px Arial',
-              outlineWidth: 2,
-              outlineStyle: 'rgb(0, 0, 0)'
-            },
-
-            // icon position
-            position: {
-              "lng": labelLng,
-              "lat": labelLat,
-              "alt": 0
-            },
-            // scene
-            sandbox: sandbox,
-            scale: 6 // icon size
+          // camera orbit timeline animation
+          orbitButton.innerHTML = 'Orbit'
+          orbitButton.addEventListener("click", () => {
+            if (orbitButton.innerHTML === 'Orbit') {
+              if (orbitAnimation) {
+                clearInterval(orbitAnimation)
+              }
+              orbitAnimation = setInterval(function() {
+                let currentPos = sandbox.camera.pose
+                currentPos.north += 10
+                // if (currentPos.north > 180) {
+                //   currentPos.north -= 180
+                // }
+                sandbox.camera.pose = currentPos
+              }, 500)
+              orbitButton.innerHTML = 'Stop'
+            } else {
+              if (orbitAnimation) {
+                clearInterval(orbitAnimation)
+              }
+              orbitButton.innerHTML = 'Orbit'
+            }
           })
-          labels.push(label)
-        }
-
-        let titleLabel = new altizure.TextTagMarker({
-          // text string
-          text: '奉贤 11-01 地块变迁图 ©伊比路',
-          // text style
-          textStyle: {
-            fillStyle: 'rgb(255, 255, 255)',
-            font: 'normal 500 24px Arial',
-            outlineWidth: 2,
-            outlineStyle: 'rgb(0, 0, 0)'
-          },
-
-          // icon position
-          position: {
-            "lng": centerLng + labelLngOffset,
-            "lat": projLatOrigin + labelLngOffset, // offset in lat direction
-            "alt": 0
-          },
-          // scene
-          sandbox: sandbox,
-          scale: 10 // icon size
         })
       }
+      document.addEventListener("DOMContentLoaded", onPageLoaded)
     </script>
   </body>
 </html>
