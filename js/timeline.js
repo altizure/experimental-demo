@@ -110,6 +110,7 @@ function timelineLayout(sandbox, projects, options) {
             }
           }
         }).then((projectMarker) => {
+          projectMarker.visible = options.defaultVisible
           let labelMarker = new altizure.TextTagMarker({
             // text string
             text: proj.text,
@@ -135,13 +136,15 @@ function timelineLayout(sandbox, projects, options) {
 
           projectEntities[idx] = {proj: projectMarker, label: labelMarker}
           resolve({proj: projectMarker, label: labelMarker})
+        }).catch((e) => {
+          console.log(e)
+          reject(e)
         })
       }))
     }
   }
 
   return Promise.all(itemsLoaded).then((res) => {
-
     const mainlabelOffset = Math.max(Math.abs(labelLngOffset), Math.abs(labelLatOffset))
     let titleLabel = new altizure.TextTagMarker({
       // text string
@@ -166,5 +169,7 @@ function timelineLayout(sandbox, projects, options) {
     })
 
     return projectEntities
+  }).catch((e) => {
+    console.log('Error in loading models')
   })
 }
