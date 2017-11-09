@@ -93,6 +93,7 @@
         let orbitButton = document.getElementById("orbitbutton")
         let orbitAnimation = null
 
+
         timelineLayout(sandbox, projects, {
           cameraPos: {
             lng: 113.94255600866971,
@@ -119,16 +120,89 @@
             ent.label.visible = false
           }
 
-          function setProjectEntityVisible(ents, idx, vis) {
-            console.log('Set visible for entity', idx)
+          // this two variables are used in setProjectEntityVisible
+          let globalVisIdx = 0
+          const bufferWin = projects.length // so no project will be removed if invisible
+                                            // smaller value will improve the detail of loaded models.
+
+
+          function loopDistance(a, b, mod) {
+            const normalDis = Math.abs(a - b)
+            if (a > b) {
+              return Math.min(normalDis, b - a + mod)
+            } else {
+              return Math.min(normalDis, a - b + mod)
+            }
+          }
+
+          function setProjectEntityVisible(ents, idx) {
+            // This global variable is used to avoid the inconsistency
+            // caused by the async loading of projects.
+            globalVisIdx = idx
+            console.log('Set visible for entity', globalVisIdx)
             for (let i in ents) {
+
               let ent = ents[i]
-              if (i === idx) {
-                ent.proj.visible = vis
-                ent.label.visible = vis
+              const proj = projects[i]
+              if (loopDistance(parseInt(i), parseInt(globalVisIdx), projects.length) <= bufferWin) {
+                if (!ent.label && !ent.proj) {
+                  console.log('Reload proj', i)
+                  // load the proj if there isn't
+                  sandbox.add('AltizureProjectMarker', {
+                    pid: proj.pid,
+                    visible: (i === globalVisIdx),
+                    pose: {
+                      position: ent.position
+                    }
+                  }).then((projectMarker) => {
+                    if (ent.proj) {
+                      ent.proj.destruct()
+                    }
+                    if (ent.label) {
+                      ent.label.destruct()
+                    }
+                    projectMarker.visible = (i === globalVisIdx)
+                    let labelMarker = new altizure.TextTagMarker({
+                      // text string
+                      text: proj.text,
+                      // text style
+                      textStyle: {
+                        fillStyle: 'rgb(255, 255, 255)',
+                        font: 'normal 500 24px Arial',
+                        outlineWidth: 2,
+                        outlineStyle: 'rgb(0, 0, 0)'
+                      },
+
+                      // icon position
+                      position: ent.lablelPosition,
+                      // scene
+                      sandbox: sandbox,
+                      visible: (i === globalVisIdx),
+                      scale: 6 // icon size
+                    })
+
+                    ent.proj = projectMarker
+                    ent.label = labelMarker
+                  }).catch((e) => {
+                    console.log(e)
+                  })
+                } else {
+                  ent.proj.visible = (i === globalVisIdx)
+                  ent.label.visible = (i === globalVisIdx)
+                }
               } else {
-                ent.proj.visible = false
-                ent.label.visible = false
+                // destruct the proj and label if it is out of the buffer window
+                if (ent.proj && ent.label) {
+                  console.log('destructing', i)
+                  ent.proj.destruct()
+                  ent.proj = null
+                  ent.label.destruct()
+                  ent.label = null
+                } else {
+                  if (!(!ent.proj && !ent.label)) {
+                    console.log('Inconsistent entity', i, ent)
+                  }
+                }
               }
             }
           }
@@ -136,11 +210,11 @@
           // Update the current slider value (each time you drag the slider handle)
           slider.oninput = function () {
             console.log(this.value)
-            setProjectEntityVisible(entities, this.value, true)
+            setProjectEntityVisible(entities, this.value)
           }
 
           slider.setAttribute('value', 0)
-          setProjectEntityVisible(entities, '0', true)
+          setProjectEntityVisible(entities, '0')
 
           // Set pick switch
           let pickSwitch = document.getElementById('pickSwitch')

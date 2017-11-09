@@ -3,7 +3,8 @@ function setDefaultValue(vari, defaultValue) {
     return defaultValue
   }
   const defautlProps = Object.getOwnPropertyNames(defaultValue)
-  for (let prop in defautlProps) {
+  for (let idx in defautlProps) {
+    const prop = defautlProps[idx]
     if (!vari.hasOwnProperty(prop)) {
       vari[prop] = defaultValue[prop]
     }
@@ -31,21 +32,21 @@ function timelineLayout(sandbox, projects, options) {
     tilt:74.7023627906978
   })
 
-  console.log(options.cameraPos)
+  // console.log(options.cameraPos)
 
   options.projOffset = setDefaultValue(options.projOffset, {
     lng: 0.009,
     lat: 0.006
   })
 
-  console.log(options.projOffset)
+  // console.log(options.projOffset)
 
   options.labelOffset = setDefaultValue(options.labelOffset, {
     lng: -0.004,
     lat: 0
   })
 
-  console.log(options.labelOffset)
+  // console.log(options.labelOffset)
 
 
   const centerLat = options.cameraPos.lat
@@ -69,8 +70,9 @@ function timelineLayout(sandbox, projects, options) {
   let projectEntities = []
   let itemsLoaded = []
 
-  for (let proj in projects) {
-    proj = setDefaultValue(proj, {ref: {lng: 0, lat: 0, alt: 0}})
+  for (let i = 0; i < projects.length; ++i) {
+    projects[i] = setDefaultValue(projects[i], {ref: {lng: 0, lat: 0, alt: 0}})
+    console.log(projects[i])
   }
 
   let ref = null
@@ -93,7 +95,7 @@ function timelineLayout(sandbox, projects, options) {
       const projLng = projLngOrigin + j * projLngOffset - (proj.ref.lng - ref.lng)
       const projAlt = - (proj.ref.alt - ref.alt)
 
-      console.log(proj.ref.lat - ref.lat, proj.ref.lng - ref.lng, proj.ref.alt - ref.alt)
+      // console.log(proj.ref.lat - ref.lat, proj.ref.lng - ref.lng, proj.ref.alt - ref.alt)
 
       const labelLat = projLat + labelLatOffset
       const labelLng = projLng + labelLngOffset
@@ -134,7 +136,19 @@ function timelineLayout(sandbox, projects, options) {
             scale: 6 // icon size
           })
 
-          projectEntities[idx] = {proj: projectMarker, label: labelMarker}
+          projectEntities[idx] = {proj: projectMarker,
+            label: labelMarker,
+            position: {
+              lng: projLng,
+              lat: projLat,
+              alt: projAlt
+            },
+            lablelPosition: {
+              "lng": labelLng,
+              "lat": labelLat,
+              "alt": 0
+            }
+          }
           resolve({proj: projectMarker, label: labelMarker})
         }).catch((e) => {
           console.log(e)
