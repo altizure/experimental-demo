@@ -165,9 +165,9 @@
                       // insert the waypoints
                       trackedWayPoints.push({
                         position: {
-                          lat: pos.latitude,
-                          lng: pos.longitude,
-                          alt: pos.altitude
+                          lat: pos.coords.latitude,
+                          lng: pos.coords.longitude,
+                          alt: pos.coords.altitude
                         },
                         orientation: {
                           northing: 0
