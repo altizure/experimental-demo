@@ -175,12 +175,12 @@
                         timeStamp: pos.timestamp
                       })
                       // update userTag position
-                      userTag.setPose({
-                          lat: center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat,
-                          lng: center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng,
-                          alt: altOffset
-                        }
-                      )
+                      // userTag.setPose({
+                      //     lat: center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat,
+                      //     lng: center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng,
+                      //     alt: altOffset
+                      //   }
+                      // )
                       // update text
                       trackText.innerHTML = 'Tracked waypoint: ' + trackedWayPoints.length
                     },
