@@ -4,7 +4,7 @@ body {
 
 .hud {
   z-index: 2;
-  background: white;
+  background: #ffffff54;
   width: 100%;
   position: fixed;
 }

@@ -11,10 +11,10 @@ Timeline is a very intuitive way to visualize the change of a construction site.
 
 # 3. Sensor data
 
-Nowadays, mobile deivces are integrated with powerful sensors observing positioning, orientation and more inforamtions. In this section, the demos illustrate how to make use of the sensor data to make the 3D models more interactive.
+Nowadays, mobile devices are integrated with powerful sensors observing positioning, orientation and more information. In this section, the demos illustrate how to make use of the sensor data to make the 3D models more interactive.
 
 #### 3.1 GPS Tracker (Coming soon)
-#### 3.2 Gyro Sensing (Coming soon) 
+#### 3.2 Gyro Sensing (Coming soon)
 
 # 4. Learn more
 
