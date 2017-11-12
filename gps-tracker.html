@@ -167,12 +167,12 @@
                         position: {
                           lat: pos.latitude,
                           lng: pos.longitude,
-                          alt: 0
+                          alt: pos.altitude
                         },
                         orientation: {
                           northing: 0
                         },
-                        timeStamp: Date().getTime() / 1000
+                        timeStamp: pos.timestamp
                       })
                       // update userTag position
                       userTag.setPose({
