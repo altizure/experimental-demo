@@ -13,27 +13,30 @@
         <div class="component">
           <div class="componentLabel">Camera</div>
           <button class="button button1" id="orbitbutton">Orbit</button>
+          <div class="componentLabel">Follow Track</div>
+          <label class="switch">
+            <input type="checkbox" id="followSwitch">
+            <span class="switchSlider"></span>
+          </label>
         </div>
         <div class="component">
           <div class="componentLabel">Tracker</div>
           <button class="button button1" id="startTrack">Start</button>
-          <div class="componentLabel">Waypoint #: </div>
+          <div class="componentLabel">Waypoint #:</div>
           <div class="componentText" id="waypointTrack"> N/A </div>
           <button class="button button1" id="clearTrack">Clear</button>
-        </div>
-        <div class="component">
-          <div class="componentLabel">Last waypoint</div>
-          <div class="componentText" id="lastWaypoint"> N/A; N/A; N/A </div>
-        </div>
-        <!-- <div id="pickpoint" class="component" style="visibility: hidden">
-          <div class="componentLabel">Pick</div>
+          <div class="componentLabel">2D Track</div>
           <label class="switch">
-            <input type="checkbox" id="pickSwitch">
+            <input type="checkbox" id="track2DSwitch">
             <span class="switchSlider"></span>
           </label>
-          <div id="pickpointText" class="componentText"> N/A </div>
-        </div> -->
+        </div>
+        <div class="component">
+          <div class="componentLabel">Last waypoint:</div>
+          <div class="componentText" id="lastWaypoint"> N/A; N/A; N/A </div>
+        </div>
       </div>
+      <canvas id="overlayCanvas2d"></canvas>
       <div id="page-content"></div>
     </div>
 
@@ -111,6 +114,7 @@
           }
         })
 
+        // load the project
         timelineLayout(sandbox, projects, {
           cameraPos: center,
           projOffset: {
@@ -124,11 +128,12 @@
           defaultVisible: true,
           title: ''
         }).then((entities) => {
+          //////////////////////////
+          // After the scene is loaded, start to initialize all other event handlers
+          //////////////////////////
+
           // add polyline marker
           let trackMarker = null
-          //
-          // After the scene is loaded, start to initialize all other event handlers
-          //
           let trackedWayPoints = []
           const geoOptions = {
             enableHighAccuracy: true,
@@ -152,6 +157,76 @@
             visible: true,
             scale: 1 // icon size
           })
+
+          // Set pick switch
+          let track2DSwitch = document.getElementById('track2DSwitch')
+          let draw2DTrack = false
+          if (track2DSwitch) {
+            track2DSwitch.onchange = function () {
+              console.log(this.checked)
+              draw2DTrack = this.checked
+              if (trackMarker) {
+                trackMarker.visible = !draw2DTrack
+              }
+              updateCanvas2d()
+            }
+          }
+
+          // Set pick switch
+          let followSwitch = document.getElementById('followSwitch')
+          let followCamera = false
+          if (followSwitch) {
+            followSwitch.onchange = function () {
+              console.log(this.checked)
+              followCamera = this.checked
+              // updateCanvas2d()
+            }
+          }
+
+          // canvas for 2d lines
+          let canvas = document.getElementById('overlayCanvas2d')
+          // set the canvas size correctly
+          canvas.setAttribute('width', canvas.clientWidth)
+          canvas.setAttribute('height', canvas.clientHeight)
+          window.addEventListener('resize', function(){
+            canvas.setAttribute('width', canvas.clientWidth)
+            canvas.setAttribute('height', canvas.clientHeight)
+          }, true)
+          let ctx2d = canvas.getContext('2d')
+          function updateCanvas2d () {
+            if (trackedWayPoints && trackedWayPoints.length >= 2) {
+              ctx2d.clearRect(0, 0, canvas.width, canvas.height)
+              if (!draw2DTrack) {
+                return
+              }
+              const offsetPt = {
+                lng: center.lng,
+                lat: center.lat,
+                alt: altOffset
+              }
+              const scrPt = sandbox.window.fromLngLatAlt(offsetPt)
+              console.log(offsetPt, scrPt)
+              ctx2d.beginPath()
+              ctx2d.strokeStyle = "#0022EE"
+              ctx2d.lineWidth = "3"
+              ctx2d.moveTo(scrPt.x, scrPt.y)
+              for (let i = 1; i < trackedWayPoints.length; ++i) {
+                const pt = trackedWayPoints[i]
+                const offsetPt = {
+                  lng: center.lng + pt.position.lng -  trackedWayPoints[0].position.lng,
+                  lat: center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
+                  alt: altOffset
+                }
+                const scrPt = sandbox.window.fromLngLatAlt(offsetPt)
+                console.log(scrPt)
+                ctx2d.lineTo(scrPt.x, scrPt.y)
+              }
+              ctx2d.stroke()
+            }
+          }
+          sandbox.on('cameraChange', updateCanvas2d)
+
+
 
           // set start record mode
           let startTrackButton = document.getElementById("startTrack")
@@ -183,7 +258,8 @@
                         timeStamp: pos.timestamp
                       })
                     } else {
-                      const distance = greatCircleDistance(trackedWayPoints[trackedWayPoints.length-1].position.lat,
+                      const distance = greatCircleDistance(
+                        trackedWayPoints[trackedWayPoints.length-1].position.lat,
                         trackedWayPoints[trackedWayPoints.length-1].position.lng,
                         pos.coords.latitude,
                         pos.coords.longitude
@@ -208,10 +284,12 @@
                             center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
                             altOffset
                           ))
+                          updateCanvas2d()
                         }
                       }
                     }
 
+                    // New a polyline marker to represent the track if there is such a marker
                     if (trackedWayPoints.length >= 2 && !trackMarker) {
                       let points = trackedWayPoints.map((pt) => {
                         return new altizure.LngLatAlt(
@@ -225,8 +303,10 @@
                         sandbox: sandbox,
                         points: points,
                         color: 0xb73026, // line color
+                        visible: !draw2DTrack,
                         fenceHeight: 5 // line height (for visualization)
                       })
+                      updateCanvas2d()
                     }
 
                     // update userTag position, userTag and text are updated everytime pos is updated
@@ -238,6 +318,13 @@
                       undefined,
                       undefined
                     )
+
+                    if (followCamera) {
+                      let currentPos = sandbox.camera.pose
+                      currentPos.lat = center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat
+                      currentPos.lng = center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng
+                      sandbox.camera.pose = currentPos
+                    }
 
                     // update text
                     lastWaypointText.innerHTML = '' + (center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat).toPrecision(9) + '; ' + (center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng).toPrecision(9) + '; ' + altOffset
@@ -265,6 +352,18 @@
           if (clearTrackButton) {
             clearTrackButton.addEventListener('click', (e) => {
               trackedWayPoints = []
+              if (trackMarker) {
+                trackMarker.destruct()
+                trackMarker = null
+              }
+              userTag.setPose({
+                  lat: center.lat,
+                  lng: center.lng,
+                  alt: altOffset
+                },
+                undefined,
+                undefined
+              )
             })
           }
         })
