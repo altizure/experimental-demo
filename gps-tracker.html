@@ -17,12 +17,13 @@
         <div class="component">
           <div class="componentLabel">Tracker</div>
           <button class="button button1" id="startTrack">Start</button>
-          <div class="componentText" id="waypointTrack"> Tracked waypoint: N/A </div>
           <button class="button button1" id="clearTrack">Clear</button>
         </div>
         <div class="component">
-          <div class="componentLabel">Last waypoint</div>
-          <div class="componentText" id="lastWaypoint"> N/A </div>
+          <div class="componentLabel">Waypoint #: </div>
+          <div class="componentText" id="waypointTrack"> N/A </div>
+          <div class="componentLabel">| Last waypoint</div>
+          <div class="componentText" id="lastWaypoint"> N/A; N/A; N/A </div>
         </div>
         <!-- <div id="pickpoint" class="component" style="visibility: hidden">
           <div class="componentLabel">Pick</div>
@@ -113,8 +114,6 @@
           }
         })
 
-
-
         timelineLayout(sandbox, projects, {
           cameraPos: center,
           projOffset: {
@@ -128,10 +127,13 @@
           defaultVisible: true,
           title: ''
         }).then((entities) => {
+          //
+          // After the scene is loaded, start to initialize all other event handlers
+          //
           let trackedWayPoints = []
           const geoOptions = {
             enableHighAccuracy: true,
-            timeout: 1000,
+            timeout: 10000,
             maximumAge: 0
           }
 
@@ -162,12 +164,14 @@
               if (startTrackButton.innerHTML === 'Start') {
                 startTrackButton.innerHTML = 'Stop'
                 if (!trackTimer) {
-                  clearInterval(trackTimer)
+                  // clearInterval(trackTimer)
+                  navigator.geolocation.clearWatch(trackTimer)
                 }
-                trackTimer = setInterval(() => {
-                  navigator.geolocation.getCurrentPosition((pos) => {
-                      console.log(pos)
-                      // insert the waypoints
+                trackTimer = navigator.geolocation.watchPosition((pos) => {
+                    console.log(pos)
+                    // insert the waypoints
+                    if (trackedWayPoints.length === 0) {
+                      // initialize the list of waypoints
                       trackedWayPoints.push({
                         position: {
                           lat: pos.coords.latitude,
@@ -179,30 +183,54 @@
                         },
                         timeStamp: pos.timestamp
                       })
-                      // update userTag position
-                      userTag.setPose({
-                          lat: center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat,
-                          lng: center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng,
-                          alt: altOffset
-                        },
-                        undefined,
-                        undefined
+                    } else {
+                      const distance = greatCircleDistance(trackedWayPoints[0].position.lat,
+                        trackedWayPoints[0].position.lng,
+                        pos.coords.latitude,
+                        pos.coords.longitude
                       )
-                      lastWaypointText.innerHTML = '' + (center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat) + '; ' + (center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng) + '; ' + altOffset
-                      // update text
-                      trackText.innerHTML = 'Tracked waypoint: ' + trackedWayPoints.length
-                    },
-                    (error) => {
-                      console.log(error)
-                      alert(error)
-                    },
-                    geoOptions
-                  )
-                }, 10000)
+                      if (distance > 1) {
+                        // insert new way point, if the user moves more than 5 meters
+                        trackedWayPoints.push({
+                          position: {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                            alt: pos.coords.altitude
+                          },
+                          orientation: {
+                            northing: 0
+                          },
+                          timeStamp: pos.timestamp
+                        })
+                      }
+                    }
+
+                    // update userTag position, userTag and text are updated everytime pos is updated
+                    userTag.setPose({
+                        lat: center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat,
+                        lng: center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng,
+                        alt: altOffset
+                      },
+                      undefined,
+                      undefined
+                    )
+
+                    // update text
+                    lastWaypointText.innerHTML = '' + (center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat).toPrecision(9) + '; ' + (center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng).toPrecision(9) + '; ' + altOffset
+                    trackText.innerHTML = '' + trackedWayPoints.length
+                  }, (error) => {
+                    console.log(error)
+                    alert(error)
+                  },
+                  geoOptions
+                )
               } else {
                 startTrackButton.innerHTML = 'Start'
                 if (!trackTimer) {
-                  clearInterval(trackTimer)
+                  // clearInterval(trackTimer)
+                  navigator.geolocation.clearWatch(trackTimer)
+                  lastWaypointText.innerHTML = 'N/A; N/A; N/A'
+                  trackText.innerHTML = '' + trackedWayPoints.length
                 }
               }
             })
