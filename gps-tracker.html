@@ -236,8 +236,8 @@
             if (startTrackButton.innerHTML === 'Start') {
               startTrackButton.innerHTML = 'Stop'
               if (!trackTimer) {
-                // clearInterval(trackTimer)
                 navigator.geolocation.clearWatch(trackTimer)
+                trackTimer = null
               }
               trackTimer = navigator.geolocation.watchPosition(
                 (pos) => {
@@ -341,11 +341,13 @@
               )
             } else {
               startTrackButton.innerHTML = 'Start'
-              if (!trackTimer) {
-                // clearInterval(trackTimer)
+              if (trackTimer) {
                 navigator.geolocation.clearWatch(trackTimer)
+                trackTimer = null
                 lastWaypointText.innerHTML = 'N/A; N/A; N/A'
                 trackText.innerHTML = '' + trackedWayPoints.length
+              } else {
+                console.log('Empty tracker')
               }
             }
           })
