@@ -188,7 +188,7 @@
                         undefined,
                         undefined
                       )
-                      lastWaypointText.innerHTML = '' + center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat + '; ' + center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng + '; ' + altOffset
+                      lastWaypointText.innerHTML = '' + (center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat) + '; ' + (center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng) + '; ' + altOffset
                       // update text
                       trackText.innerHTML = 'Tracked waypoint: ' + trackedWayPoints.length
                     },
