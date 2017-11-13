@@ -17,12 +17,12 @@
         <div class="component">
           <div class="componentLabel">Tracker</div>
           <button class="button button1" id="startTrack">Start</button>
+          <div class="componentLabel">Waypoint #: </div>
+          <div class="componentText" id="waypointTrack"> N/A </div>
           <button class="button button1" id="clearTrack">Clear</button>
         </div>
         <div class="component">
-          <div class="componentLabel">Waypoint #: </div>
-          <div class="componentText" id="waypointTrack"> N/A </div>
-          <div class="componentLabel">| Last waypoint</div>
+          <div class="componentLabel">Last waypoint</div>
           <div class="componentText" id="lastWaypoint"> N/A; N/A; N/A </div>
         </div>
         <!-- <div id="pickpoint" class="component" style="visibility: hidden">
@@ -100,9 +100,6 @@
             orbitAnimation = setInterval(function() {
               let currentPos = sandbox.camera.pose
               currentPos.north += 10
-              // if (currentPos.north > 180) {
-              //   currentPos.north -= 180
-              // }
               sandbox.camera.pose = currentPos
             }, 500)
             orbitButton.innerHTML = 'Stop'
@@ -127,6 +124,8 @@
           defaultVisible: true,
           title: ''
         }).then((entities) => {
+          // add polyline marker
+          let trackMarker = null
           //
           // After the scene is loaded, start to initialize all other event handlers
           //
@@ -184,13 +183,13 @@
                         timeStamp: pos.timestamp
                       })
                     } else {
-                      const distance = greatCircleDistance(trackedWayPoints[0].position.lat,
-                        trackedWayPoints[0].position.lng,
+                      const distance = greatCircleDistance(trackedWayPoints[trackedWayPoints.length-1].position.lat,
+                        trackedWayPoints[trackedWayPoints.length-1].position.lng,
                         pos.coords.latitude,
                         pos.coords.longitude
                       )
-                      if (distance > 1) {
-                        // insert new way point, if the user moves more than 5 meters
+                      if (distance > 4) {
+                        // insert new way point, if the user moves more than 4 meters
                         trackedWayPoints.push({
                           position: {
                             lat: pos.coords.latitude,
@@ -202,7 +201,32 @@
                           },
                           timeStamp: pos.timestamp
                         })
+                        if (trackMarker) {
+                          const pt = trackedWayPoints[trackedWayPoints.length - 1]
+                          trackMarker.addPointMarker(new altizure.LngLatAlt(
+                            center.lng + pt.position.lng -  trackedWayPoints[0].position.lng,
+                            center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
+                            altOffset
+                          ))
+                        }
                       }
+                    }
+
+                    if (trackedWayPoints.length >= 2 && !trackMarker) {
+                      let points = trackedWayPoints.map((pt) => {
+                        return new altizure.LngLatAlt(
+                          center.lng + pt.position.lng -  trackedWayPoints[0].position.lng,
+                          center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
+                          altOffset)
+                      })
+                      // create the track marker if the waypoints is >= 2
+                      trackMarker = new altizure.PolyLineMarker({
+                        name: 'tracks',
+                        sandbox: sandbox,
+                        points: points,
+                        color: 0xb73026, // line color
+                        fenceHeight: 5 // line height (for visualization)
+                      })
                     }
 
                     // update userTag position, userTag and text are updated everytime pos is updated
@@ -221,6 +245,7 @@
                   }, (error) => {
                     console.log(error)
                     alert(error)
+                    lastWaypointText.innerHTML = 'Error in location change'
                   },
                   geoOptions
                 )
@@ -243,7 +268,6 @@
             })
           }
         })
-
       }
       document.addEventListener("DOMContentLoaded", checkGeoLocation)
     </script>
