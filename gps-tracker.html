@@ -11,15 +11,6 @@
     <div id="root">
       <div class="hud">
         <div class="component">
-          <div class="componentLabel">Camera</div>
-          <button class="button button1" id="orbitbutton">Orbit</button>
-          <div class="componentLabel">Follow Track</div>
-          <label class="switch">
-            <input type="checkbox" id="followSwitch">
-            <span class="switchSlider"></span>
-          </label>
-        </div>
-        <div class="component">
           <div class="componentLabel">Tracker</div>
           <button class="button button1" id="startTrack">Start</button>
           <div class="componentLabel">Waypoint #:</div>
@@ -34,6 +25,15 @@
         <div class="component">
           <div class="componentLabel">Last waypoint:</div>
           <div class="componentText" id="lastWaypoint"> N/A; N/A; N/A </div>
+        </div>
+        <div class="component">
+          <div class="componentLabel">Camera</div>
+          <button class="button button1" id="orbitbutton">Orbit</button>
+          <div class="componentLabel">Follow Me</div>
+          <label class="switch">
+            <input type="checkbox" id="followSwitch">
+            <span class="switchSlider"></span>
+          </label>
         </div>
       </div>
       <canvas id="overlayCanvas2d"></canvas>
@@ -325,7 +325,8 @@
                     let currentPos = sandbox.camera.pose
                     currentPos.lat = center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat
                     currentPos.lng = center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng
-                    sandbox.camera.flyTo(currentPos)
+                    // sandbox.camera.flyTo(currentPos)
+                    sandbox.camera.pose = currentPos
                   }
 
                   // update text for last waypoint and waypoint number
