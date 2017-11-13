@@ -325,7 +325,7 @@
                     let currentPos = sandbox.camera.pose
                     currentPos.lat = center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat
                     currentPos.lng = center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng
-                    sandbox.camera.flyTo(currentPos, 1.5)
+                    sandbox.camera.flyTo(currentPos)
                   }
 
                   // update text for last waypoint and waypoint number
