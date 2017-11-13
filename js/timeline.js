@@ -12,6 +12,20 @@ function setDefaultValue(vari, defaultValue) {
   return vari
 }
 
+// https://en.wikipedia.org/wiki/Haversine_formula
+function greatCircleDistance(lat0, lng0, lat1, lng1){
+    const radius = 6378.137
+    const deltaLat = (lat1 - lat0) * Math.PI / 180
+    const deltaLng = (lng1 - lng0) * Math.PI / 180
+    const havLat = (1 - Math.cos(deltaLat)) * 0.5
+    const havLng = (1 - Math.cos(deltaLng)) * 0.5
+    const havDR = havLat + Math.cos(lat0 * Math.PI / 180)
+                           * Math.cos(lat1 * Math.PI / 180)
+                           * havLng
+    const theta = 2 * Math.atan2(Math.sqrt(havDR), Math.sqrt(1 - havDR))
+    return radius * theta * 1000
+}
+
 function timelineLayout(sandbox, projects, options) {
   if (!sandbox) {
     console.log('No sandbox to render the grid timeline')

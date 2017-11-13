@@ -2,9 +2,17 @@ body {
   margin: 0px
 }
 
+#overlayCanvas2d {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  z-index: 4;
+  pointer-events: none;
+}
+
 .hud {
   z-index: 2;
-  background: white;
+  background: #ffffff54;
   width: 100%;
   position: fixed;
 }
@@ -56,7 +64,7 @@ body {
 .switch {
   position: relative;
   display: inline-block;
-  width: 60px;
+  width: 54px;
   height: 34px;
 }
 
@@ -71,6 +79,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
+  margin: 4px 0px;
   background-color: #ccc;
   -webkit-transition: .4s;
   transition: .4s;
@@ -79,10 +88,9 @@ body {
 .switchSlider:before {
   position: absolute;
   content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
+  height: 22px;
+  width: 22px;
+  margin: 2px 2px;
   background-color: white;
   -webkit-transition: .4s;
   transition: .4s;
@@ -97,9 +105,9 @@ input:focus + .switchSlider {
 }
 
 input:checked + .switchSlider:before {
-  -webkit-transform: translateX(26px);
-  -ms-transform: translateX(26px);
-  transform: translateX(26px);
+  -webkit-transform: translateX(28px);
+  -ms-transform: translateX(28px);
+  transform: translateX(28px);
 }
 
 /* Rounded sliders */
