@@ -132,17 +132,33 @@
           // After the scene is loaded, start to initialize all other event handlers
           //////////////////////////
 
-          // add polyline marker
-          let trackMarker = null
-          let trackedWayPoints = []
+          // UI stuffs
+          let followSwitch = document.getElementById('followSwitch')
+          let startTrackButton = document.getElementById("startTrack")
+          let trackText = document.getElementById("waypointTrack")
+          let lastWaypointText = document.getElementById("lastWaypoint")
+          let clearTrackButton = document.getElementById('clearTrack')
+          let track2DSwitch = document.getElementById('track2DSwitch')
+          let canvas = document.getElementById('overlayCanvas2d')
+
+          // Const variables
+          const altOffset = 10
           const geoOptions = {
             enableHighAccuracy: true,
             timeout: 10000,
             maximumAge: 0
           }
 
-          const altOffset = 10
+          // State variables
+          let draw2DTrack = false
+          let followCamera = false
 
+          // Core data
+          let trackedWayPoints = []
+
+          // 3D content
+          // add polyline marker
+          let trackMarker = null
           // insert a user tag
           let userTag = new altizure.TagMarker({
             imgUrl: './images/altizure-logo.png',
@@ -158,33 +174,21 @@
             scale: 1 // icon size
           })
 
-          // Set pick switch
-          let track2DSwitch = document.getElementById('track2DSwitch')
-          let draw2DTrack = false
-          if (track2DSwitch) {
-            track2DSwitch.onchange = function () {
-              console.log(this.checked)
-              draw2DTrack = this.checked
-              if (trackMarker) {
-                trackMarker.visible = !draw2DTrack
-              }
-              updateCanvas2d()
+          // Setup track style swtich
+          track2DSwitch.onchange = function () {
+            draw2DTrack = this.checked
+            if (trackMarker) {
+              trackMarker.visible = !draw2DTrack
             }
+            updateCanvas2d()
           }
 
-          // Set pick switch
-          let followSwitch = document.getElementById('followSwitch')
-          let followCamera = false
-          if (followSwitch) {
-            followSwitch.onchange = function () {
-              console.log(this.checked)
-              followCamera = this.checked
-              // updateCanvas2d()
-            }
+          // Setup camera follow switch
+          followSwitch.onchange = function () {
+            followCamera = this.checked
           }
 
-          // canvas for 2d lines
-          let canvas = document.getElementById('overlayCanvas2d')
+          // setup canvas for 2d lines
           // set the canvas size correctly
           canvas.setAttribute('width', canvas.clientWidth)
           canvas.setAttribute('height', canvas.clientHeight)
@@ -195,6 +199,7 @@
           let ctx2d = canvas.getContext('2d')
           function updateCanvas2d () {
             if (trackedWayPoints && trackedWayPoints.length >= 2) {
+              // When there are more than 1 point, project the points and draw on canvas
               ctx2d.clearRect(0, 0, canvas.width, canvas.height)
               if (!draw2DTrack) {
                 return
@@ -205,7 +210,6 @@
                 alt: altOffset
               }
               const scrPt = sandbox.window.fromLngLatAlt(offsetPt)
-              console.log(offsetPt, scrPt)
               ctx2d.beginPath()
               ctx2d.strokeStyle = "#0022EE"
               ctx2d.lineWidth = "3"
@@ -218,34 +222,48 @@
                   alt: altOffset
                 }
                 const scrPt = sandbox.window.fromLngLatAlt(offsetPt)
-                console.log(scrPt)
                 ctx2d.lineTo(scrPt.x, scrPt.y)
               }
               ctx2d.stroke()
             }
           }
+          // update the canvas size when the window is resized.
           sandbox.on('cameraChange', updateCanvas2d)
 
-
-
           // set start record mode
-          let startTrackButton = document.getElementById("startTrack")
-          let trackText = document.getElementById("waypointTrack")
-          let lastWaypointText = document.getElementById("lastWaypoint")
-          if (startTrackButton){
-            let trackTimer = null
-            startTrackButton.addEventListener('click', (e) => {
-              if (startTrackButton.innerHTML === 'Start') {
-                startTrackButton.innerHTML = 'Stop'
-                if (!trackTimer) {
-                  // clearInterval(trackTimer)
-                  navigator.geolocation.clearWatch(trackTimer)
-                }
-                trackTimer = navigator.geolocation.watchPosition((pos) => {
-                    console.log(pos)
-                    // insert the waypoints
-                    if (trackedWayPoints.length === 0) {
-                      // initialize the list of waypoints
+          let trackTimer = null
+          startTrackButton.addEventListener('click', (e) => {
+            if (startTrackButton.innerHTML === 'Start') {
+              startTrackButton.innerHTML = 'Stop'
+              if (!trackTimer) {
+                // clearInterval(trackTimer)
+                navigator.geolocation.clearWatch(trackTimer)
+              }
+              trackTimer = navigator.geolocation.watchPosition(
+                (pos) => {
+                  // insert the waypoints
+                  if (trackedWayPoints.length === 0) {
+                    // initialize the list of waypoints
+                    trackedWayPoints.push({
+                      position: {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        alt: pos.coords.altitude
+                      },
+                      orientation: {
+                        northing: 0
+                      },
+                      timeStamp: pos.timestamp
+                    })
+                  } else {
+                    const distance = greatCircleDistance(
+                      trackedWayPoints[trackedWayPoints.length-1].position.lat,
+                      trackedWayPoints[trackedWayPoints.length-1].position.lng,
+                      pos.coords.latitude,
+                      pos.coords.longitude
+                    )
+                    if (distance > 4) {
+                      // insert new way point, if the user moves more than 4 meters
                       trackedWayPoints.push({
                         position: {
                           lat: pos.coords.latitude,
@@ -257,115 +275,99 @@
                         },
                         timeStamp: pos.timestamp
                       })
-                    } else {
-                      const distance = greatCircleDistance(
-                        trackedWayPoints[trackedWayPoints.length-1].position.lat,
-                        trackedWayPoints[trackedWayPoints.length-1].position.lng,
-                        pos.coords.latitude,
-                        pos.coords.longitude
-                      )
-                      if (distance > 4) {
-                        // insert new way point, if the user moves more than 4 meters
-                        trackedWayPoints.push({
-                          position: {
-                            lat: pos.coords.latitude,
-                            lng: pos.coords.longitude,
-                            alt: pos.coords.altitude
-                          },
-                          orientation: {
-                            northing: 0
-                          },
-                          timeStamp: pos.timestamp
-                        })
-                        if (trackMarker) {
-                          const pt = trackedWayPoints[trackedWayPoints.length - 1]
-                          trackMarker.addPointMarker(new altizure.LngLatAlt(
-                            center.lng + pt.position.lng -  trackedWayPoints[0].position.lng,
-                            center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
-                            altOffset
-                          ))
-                          updateCanvas2d()
-                        }
-                      }
-                    }
-
-                    // New a polyline marker to represent the track if there is such a marker
-                    if (trackedWayPoints.length >= 2 && !trackMarker) {
-                      let points = trackedWayPoints.map((pt) => {
-                        return new altizure.LngLatAlt(
+                      if (trackMarker) {
+                        // if the marker for waypoints exists, add a new point to the end
+                        // and update canvas if needed.
+                        const pt = trackedWayPoints[trackedWayPoints.length - 1]
+                        trackMarker.addPointMarker(new altizure.LngLatAlt(
                           center.lng + pt.position.lng -  trackedWayPoints[0].position.lng,
                           center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
-                          altOffset)
-                      })
-                      // create the track marker if the waypoints is >= 2
-                      trackMarker = new altizure.PolyLineMarker({
-                        name: 'tracks',
-                        sandbox: sandbox,
-                        points: points,
-                        color: 0xb73026, // line color
-                        visible: !draw2DTrack,
-                        fenceHeight: 5 // line height (for visualization)
-                      })
-                      updateCanvas2d()
+                          altOffset
+                        ))
+                        updateCanvas2d()
+                      }
                     }
+                  }
 
-                    // update userTag position, userTag and text are updated everytime pos is updated
-                    userTag.setPose({
-                        lat: center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat,
-                        lng: center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng,
-                        alt: altOffset
-                      },
-                      undefined,
-                      undefined
-                    )
+                  // New a polyline marker to represent the track if there is such a marker
+                  if (trackedWayPoints.length >= 2 && !trackMarker) {
+                    let points = trackedWayPoints.map((pt) => {
+                      return new altizure.LngLatAlt(
+                        center.lng + pt.position.lng -  trackedWayPoints[0].position.lng,
+                        center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
+                        altOffset)
+                    })
 
-                    if (followCamera) {
-                      let currentPos = sandbox.camera.pose
-                      currentPos.lat = center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat
-                      currentPos.lng = center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng
-                      sandbox.camera.pose = currentPos
-                    }
+                    // create the track marker if the waypoints is >= 2
+                    trackMarker = new altizure.PolyLineMarker({
+                      name: 'tracks',
+                      sandbox: sandbox,
+                      points: points,
+                      color: 0xb73026, // line color
+                      visible: !draw2DTrack,
+                      fenceHeight: 5 // line height (for visualization)
+                    })
+                    updateCanvas2d()
+                  }
 
-                    // update text
-                    lastWaypointText.innerHTML = '' + (center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat).toPrecision(9) + '; ' + (center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng).toPrecision(9) + '; ' + altOffset
-                    trackText.innerHTML = '' + trackedWayPoints.length
-                  }, (error) => {
-                    console.log(error)
-                    alert(error)
-                    lastWaypointText.innerHTML = 'Error in location change'
-                  },
-                  geoOptions
-                )
-              } else {
-                startTrackButton.innerHTML = 'Start'
-                if (!trackTimer) {
-                  // clearInterval(trackTimer)
-                  navigator.geolocation.clearWatch(trackTimer)
-                  lastWaypointText.innerHTML = 'N/A; N/A; N/A'
+                  // update userTag position, userTag and text are updated everytime pos is updated
+                  userTag.setPose({
+                      lat: center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat,
+                      lng: center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng,
+                      alt: altOffset
+                    },
+                    undefined,
+                    undefined
+                  )
+
+                  // update the camera pose if the user enables camera-follow feature.
+                  if (followCamera) {
+                    let currentPos = sandbox.camera.pose
+                    currentPos.lat = center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat
+                    currentPos.lng = center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng
+                    sandbox.camera.pose = currentPos
+                  }
+
+                  // update text for last waypoint and waypoint number
+                  lastWaypointText.innerHTML = '' + (center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat).toPrecision(9) + '; ' + (center.lng + pos.coords.longitude - trackedWayPoints[0].position.lng).toPrecision(9) + '; ' + altOffset
                   trackText.innerHTML = '' + trackedWayPoints.length
-                }
-              }
-            })
-          }
-
-          let clearTrackButton = document.getElementById('clearTrack')
-          if (clearTrackButton) {
-            clearTrackButton.addEventListener('click', (e) => {
-              trackedWayPoints = []
-              if (trackMarker) {
-                trackMarker.destruct()
-                trackMarker = null
-              }
-              userTag.setPose({
-                  lat: center.lat,
-                  lng: center.lng,
-                  alt: altOffset
                 },
-                undefined,
-                undefined
+                (error) => {
+                  console.log(error)
+                  alert(error)
+                  lastWaypointText.innerHTML = 'Error in location change'
+                },
+                geoOptions
               )
-            })
-          }
+            } else {
+              startTrackButton.innerHTML = 'Start'
+              if (!trackTimer) {
+                // clearInterval(trackTimer)
+                navigator.geolocation.clearWatch(trackTimer)
+                lastWaypointText.innerHTML = 'N/A; N/A; N/A'
+                trackText.innerHTML = '' + trackedWayPoints.length
+              }
+            }
+          })
+
+          // Clear the tracked points
+          clearTrackButton.addEventListener('click', (e) => {
+            trackedWayPoints = []
+            lastWaypointText.innerHTML = 'N/A; N/A; N/A'
+            trackText.innerHTML = '' + trackedWayPoints.length
+            if (trackMarker) {
+              trackMarker.destruct()
+              trackMarker = null
+            }
+            userTag.setPose({
+                lat: center.lat,
+                lng: center.lng,
+                alt: altOffset
+              },
+              undefined,
+              undefined
+            )
+          })
         })
       }
       document.addEventListener("DOMContentLoaded", checkGeoLocation)
