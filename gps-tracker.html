@@ -36,6 +36,7 @@
           </label>
         </div>
         <div class="component">
+          <div class="componentLabel">Hint:</div>
           <div class="componentText" id="hintText"> Press Start to track your position </div>
         </div>
       </div>
@@ -62,7 +63,7 @@
         console.log('start position:', startPos)
 
         let projects = [
-          {pid: '58428f1d97b73e0b090675cd', text: 'HKUST'}
+          {pid: '58428f1d97b73e0b090675cd', text: ''}
         ]
 
         // 22.335975, 114.263718 // on google map
@@ -144,7 +145,7 @@
           },
           labelOffset: {
             lng: 0,
-            lat: -0.02
+            lat: -0.01
           },
           defaultVisible: true,
           title: '香港科技大学'
@@ -270,6 +271,7 @@
                     && pos.coords.longitude >= 114.259520 && pos.coords.longitude <= 114.269798) {
                       center.lat = pos.coords.latitude
                       center.lng = pos.coords.longitude
+                      hintText.innerHTML = 'Press stop to stop tracking.'
                     } else {
                       hintText.innerHTML = 'Your current location is too far from this model. The starting point will be set to the center of this model.'
                       depthAlt = mainProj.pickDepthMap([{
@@ -363,16 +365,17 @@
                     })
 
                     // create the track marker if the waypoints is >= 2
-                    trackMarker = new altizure.PolyCylinderLineMarker({
-                      name: 'tracks',
-                      sandbox: sandbox,
-                      points: points,
-                      color: 0xb73026, // line color
-                      visible: !draw2DTrack,
-                      lineWidth: 2 // line height (for visualization)
-                    })
-                    updateCanvas2d()
+                    // disable temporarily. It is buggy
+                    // trackMarker = new altizure.PolyCylinderLineMarker({
+                    //   name: 'tracks',
+                    //   sandbox: sandbox,
+                    //   points: points,
+                    //   color: 0xb73026, // line color
+                    //   visible: !draw2DTrack,
+                    //   lineWidth: 2 // line height (for visualization)
+                    // })
                   }
+                  updateCanvas2d()
 
                   // update userTag position, userTag and text are updated everytime pos is updated
                   // let depthAlt = mainProj.pickDepthMap([{

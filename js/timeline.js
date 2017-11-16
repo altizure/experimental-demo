@@ -139,7 +139,8 @@ function timelineLayout(sandbox, projects, options) {
         }).then((projectMarker) => {
           projectMarker.visible = options.defaultVisible
           let labelMarker = null
-          if (options.cameraPos.lat && options.cameraPos.lng && options.cameraPos.alt) {
+          if (options.cameraPos.lat && options.cameraPos.lng && options.cameraPos.alt
+          && proj.text.length > 0) {
             labelMarker = new altizure.TextTagMarker({
               // text string
               text: proj.text,
@@ -188,7 +189,8 @@ function timelineLayout(sandbox, projects, options) {
 
   return Promise.all(itemsLoaded).then((res) => {
     const mainlabelOffset = Math.max(Math.abs(labelLngOffset), Math.abs(labelLatOffset))
-    if (options.cameraPos.lat && options.cameraPos.lng && options.cameraPos.alt) {
+    if (options.cameraPos.lat && options.cameraPos.lng && options.cameraPos.alt
+      && options.title.length > 0) {
       let titleLabel = new altizure.TextTagMarker({
         // text string
         text: options.title,
