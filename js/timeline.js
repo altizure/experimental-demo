@@ -134,8 +134,8 @@ function timelineLayout(sandbox, projects, options) {
         }
         sandbox.add('AltizureProjectMarker', {
           pid: proj.pid,
-          visible: options.defaultVisible//,
-          // pose: projPose
+          visible: options.defaultVisible,
+          pose: projPose
         }).then((projectMarker) => {
           projectMarker.visible = options.defaultVisible
           let labelMarker = null
