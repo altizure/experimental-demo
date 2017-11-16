@@ -71,7 +71,14 @@ function timelineLayout(sandbox, projects, options) {
   const labelLatOffset = options.labelOffset.lat
   const labelLngOffset = options.labelOffset.lng
 
-  sandbox.camera.flyTo(options.cameraPos)
+  console.log('option.cameraPos', options.cameraPos)
+
+  if (options.cameraPos.lat && options.cameraPos.lng && options.cameraPos.alt) {
+    sandbox.camera.flyTo(options.cameraPos)
+  } else {
+    console.log('options.cameraPos is not fully ready')
+  }
+
 
   const projCount = projects.length
   const projCol = Math.ceil(Math.sqrt(projCount))
@@ -115,40 +122,48 @@ function timelineLayout(sandbox, projects, options) {
       const labelLng = projLng + labelLngOffset
 
       itemsLoaded.push(new Promise((resolve, reject) => {
-        sandbox.add('AltizureProjectMarker', {
-          pid: proj.pid,
-          visible: options.defaultVisible,
-          pose: {
+        let projPose = undefined
+        if (options.cameraPos.lat && options.cameraPos.lng && options.cameraPos.alt) {
+          projPose = {
             position: {
               lng: projLng,
               lat: projLat,
               alt: projAlt
             }
           }
+        }
+        sandbox.add('AltizureProjectMarker', {
+          pid: proj.pid,
+          visible: options.defaultVisible,
+          pose: projPose
         }).then((projectMarker) => {
           projectMarker.visible = options.defaultVisible
-          let labelMarker = new altizure.TextTagMarker({
-            // text string
-            text: proj.text,
-            // text style
-            textStyle: {
-              fillStyle: 'rgb(255, 255, 255)',
-              font: 'normal 500 24px Arial',
-              outlineWidth: 2,
-              outlineStyle: 'rgb(0, 0, 0)'
-            },
+          let labelMarker = null
+          if (options.cameraPos.lat && options.cameraPos.lng && options.cameraPos.alt
+          && proj.text.length > 0) {
+            labelMarker = new altizure.TextTagMarker({
+              // text string
+              text: proj.text,
+              // text style
+              textStyle: {
+                fillStyle: 'rgb(255, 255, 255)',
+                font: 'normal 500 24px Arial',
+                outlineWidth: 2,
+                outlineStyle: 'rgb(0, 0, 0)'
+              },
 
-            // icon position
-            position: {
-              "lng": labelLng,
-              "lat": labelLat,
-              "alt": 0
-            },
-            // scene
-            sandbox: sandbox,
-            visible: options.defaultVisible,
-            scale: 6 // icon size
-          })
+              // icon position
+              position: {
+                "lng": labelLng,
+                "lat": labelLat,
+                "alt": 0
+              },
+              // scene
+              sandbox: sandbox,
+              visible: options.defaultVisible,
+              scale: 6 // icon size
+            })
+          }
 
           projectEntities[idx] = {proj: projectMarker,
             label: labelMarker,
@@ -174,27 +189,30 @@ function timelineLayout(sandbox, projects, options) {
 
   return Promise.all(itemsLoaded).then((res) => {
     const mainlabelOffset = Math.max(Math.abs(labelLngOffset), Math.abs(labelLatOffset))
-    let titleLabel = new altizure.TextTagMarker({
-      // text string
-      text: options.title,
-      // text style
-      textStyle: {
-        fillStyle: 'rgb(255, 255, 255)',
-        font: 'normal 500 24px Arial',
-        outlineWidth: 2,
-        outlineStyle: 'rgb(0, 0, 0)'
-      },
+    if (options.cameraPos.lat && options.cameraPos.lng && options.cameraPos.alt
+      && options.title.length > 0) {
+      let titleLabel = new altizure.TextTagMarker({
+        // text string
+        text: options.title,
+        // text style
+        textStyle: {
+          fillStyle: 'rgb(255, 255, 255)',
+          font: 'normal 500 24px Arial',
+          outlineWidth: 2,
+          outlineStyle: 'rgb(0, 0, 0)'
+        },
 
-      // icon position
-      position: {
-        "lng": centerLng - mainlabelOffset * ((projLngOffset > 0) ? 1 : 0),
-        "lat": projLatOrigin - mainlabelOffset * ((Math.abs(labelLatOffset) > 0) ? 1.3 : 1), // offset in lat direction
-        "alt": 0
-      },
-      // scene
-      sandbox: sandbox,
-      scale: 8 // icon size
-    })
+        // icon position
+        position: {
+          "lng": centerLng - mainlabelOffset * ((projLngOffset > 0) ? 1 : 0),
+          "lat": projLatOrigin - mainlabelOffset * ((Math.abs(labelLatOffset) > 0) ? 1.3 : 1), // offset in lat direction
+          "alt": 0
+        },
+        // scene
+        sandbox: sandbox,
+        scale: 8 // icon size
+      })
+    }
 
     return projectEntities
   }).catch((e) => {

@@ -16,7 +16,7 @@
           <div class="componentLabel">Waypoint #:</div>
           <div class="componentText" id="waypointTrack"> N/A </div>
           <button class="button button1" id="clearTrack">Clear</button>
-          <div class="componentLabel">2D Track</div>
+          <div class="componentLabel">Show Track</div>
           <label class="switch">
             <input type="checkbox" id="track2DSwitch">
             <span class="switchSlider"></span>
@@ -34,6 +34,10 @@
             <input type="checkbox" id="followSwitch">
             <span class="switchSlider"></span>
           </label>
+        </div>
+        <div class="component">
+          <div class="componentLabel">Hint:</div>
+          <div class="componentText" id="hintText"> Press Start to track your position </div>
         </div>
       </div>
       <canvas id="overlayCanvas2d"></canvas>
@@ -55,14 +59,26 @@
         })
       }
 
-      function onPageLoaded () {
+      function onPageLoaded (startPos) {
+        console.log('start position:', startPos)
+
         let projects = [
-          {pid: '59aedc49b891807f43aac819', text: 'Outdoor Stadium ©INDrone'}
+          {pid: '58428f1d97b73e0b090675cd', text: ''}
         ]
 
+        // 22.335975, 114.263718 // on google map
+        // 22.335392, 114.262712 // on altizure ust model without pose
+        // 22.334281, 114.263475 // on altizure ust model with pose as 22.335392, 114.262712
+        // the altizure model should offset
+        // 0.001694 0.000243
+        // new pose is
+        // 22.335392, 114.262712 - 0.001694 0.000243
+        // = 22.333698 114.262469
+
+
         const center = {
-          lat:22.538388886344876,
-          lng:113.94255600866971,
+          lat:22.335975,
+          lng:114.263718,
           alt:1020
         }
 
@@ -72,13 +88,15 @@
           },
           camera: {
             poseTo: { alt:1200,
-              lat:22.538388886344876,
-              lng:113.94255600866971 },
+              lat: center.lat,
+              lng: center.lng
+            },
             flyTo: { alt: center.alt,
               lat: center.lat,
               lng: center.lng,
-              north:-27.271585092584015,
-              tilt:74.7023627906978 }
+              north: -27.271585092584015,
+              tilt: 74.7023627906978
+            }
           },
           renderItems: {
             earth: true,
@@ -116,21 +134,28 @@
 
         // load the project
         timelineLayout(sandbox, projects, {
-          cameraPos: center,
+          cameraPos: {
+            lat: 22.333698,
+            lng: 114.262469,
+            alt: 1020
+          },
           projOffset: {
             lng: 0,
             lat: 0
           },
           labelOffset: {
             lng: 0,
-            lat: -0.002
+            lat: -0.01
           },
           defaultVisible: true,
-          title: ''
+          title: '香港科技大学'
         }).then((entities) => {
           //////////////////////////
           // After the scene is loaded, start to initialize all other event handlers
           //////////////////////////
+
+          let mainProj = entities['0'].proj
+          mainProj.water.import()
 
           // UI stuffs
           let followSwitch = document.getElementById('followSwitch')
@@ -140,6 +165,7 @@
           let clearTrackButton = document.getElementById('clearTrack')
           let track2DSwitch = document.getElementById('track2DSwitch')
           let canvas = document.getElementById('overlayCanvas2d')
+          let hintText = document.getElementById('hintText')
 
           // Const variables
           const altOffset = 10
@@ -160,19 +186,7 @@
           // add polyline marker
           let trackMarker = null
           // insert a user tag
-          let userTag = new altizure.TagMarker({
-            imgUrl: './images/altizure-logo.png',
-            // icon position
-            position: {
-              lat: center.lat,
-              lng: center.lng,
-              alt: altOffset
-            },
-            // scene
-            sandbox: sandbox,
-            visible: true,
-            scale: 1 // icon size
-          })
+          let userTag = null
 
           // Setup track style swtich
           track2DSwitch.onchange = function () {
@@ -205,9 +219,9 @@
                 return
               }
               const offsetPt = {
-                lng: center.lng,
-                lat: center.lat,
-                alt: altOffset
+                lng: center.lng + trackedWayPoints[0].position.lng - trackedWayPoints[0].position.lng,
+                lat: center.lat + trackedWayPoints[0].position.lat - trackedWayPoints[0].position.lat,
+                alt: trackedWayPoints[0].position.alt
               }
               const scrPt = sandbox.window.fromLngLatAlt(offsetPt)
               ctx2d.beginPath()
@@ -217,9 +231,9 @@
               for (let i = 1; i < trackedWayPoints.length; ++i) {
                 const pt = trackedWayPoints[i]
                 const offsetPt = {
-                  lng: center.lng + pt.position.lng -  trackedWayPoints[0].position.lng,
+                  lng: center.lng + pt.position.lng - trackedWayPoints[0].position.lng,
                   lat: center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
-                  alt: altOffset
+                  alt: pt.position.alt
                 }
                 const scrPt = sandbox.window.fromLngLatAlt(offsetPt)
                 ctx2d.lineTo(scrPt.x, scrPt.y)
@@ -241,20 +255,67 @@
               }
               trackTimer = navigator.geolocation.watchPosition(
                 (pos) => {
+                  let depthAlt = mainProj.pickDepthMap([{
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    alt: altOffset
+                  }])[0]
+                  console.log(depthAlt)
+
                   // insert the waypoints
                   if (trackedWayPoints.length === 0) {
+                    // reset the center.lat/lng if the point is inside this data
+                    // 22.340939, 114.259520 ust top left
+                    // 22.330965, 114.269798 ust bottom right
+                    if (pos.coords.latitude >= 22.330965 && pos.coords.latitude <= 22.340939
+                    && pos.coords.longitude >= 114.259520 && pos.coords.longitude <= 114.269798) {
+                      center.lat = pos.coords.latitude
+                      center.lng = pos.coords.longitude
+                      hintText.innerHTML = 'Press stop to stop tracking.'
+                    } else {
+                      hintText.innerHTML = 'Your current location is too far from this model. The starting point will be set to the center of this model.'
+                      depthAlt = mainProj.pickDepthMap([{
+                        lat: center.lat,
+                        lng: center.lng,
+                        alt: altOffset
+                      }])[0]
+                    }
+
                     // initialize the list of waypoints
                     trackedWayPoints.push({
                       position: {
                         lat: pos.coords.latitude,
                         lng: pos.coords.longitude,
-                        alt: pos.coords.altitude
+                        alt: depthAlt
                       },
                       orientation: {
                         northing: 0
                       },
                       timeStamp: pos.timestamp
                     })
+
+
+
+                    if (userTag) {
+                      userTag.destruct()
+                      userTag = null
+                    }
+
+                    if (!userTag) {
+                      userTag = new altizure.TagMarker({
+                        imgUrl: './images/altizure-logo.png',
+                        // icon position
+                        position: {
+                          lat: pos.coords.latitude,
+                          lng: pos.coords.longitude,
+                          alt: depthAlt
+                        },
+                        // scene
+                        sandbox: sandbox,
+                        visible: true,
+                        scale: 5 // icon size
+                      })
+                    }
                   } else {
                     const distance = greatCircleDistance(
                       trackedWayPoints[trackedWayPoints.length-1].position.lat,
@@ -264,11 +325,16 @@
                     )
                     if (distance > 4) {
                       // insert new way point, if the user moves more than 4 meters
+                      // let depthAlt = mainProj.pickDepthMap([{
+                      //   lat: pos.coords.latitude,
+                      //   lng: pos.coords.longitude,
+                      //   alt: altOffset
+                      // }])[0]
                       trackedWayPoints.push({
                         position: {
                           lat: pos.coords.latitude,
                           lng: pos.coords.longitude,
-                          alt: pos.coords.altitude
+                          alt: depthAlt
                         },
                         orientation: {
                           northing: 0
@@ -279,10 +345,10 @@
                         // if the marker for waypoints exists, add a new point to the end
                         // and update canvas if needed.
                         const pt = trackedWayPoints[trackedWayPoints.length - 1]
-                        trackMarker.addPointMarker(new altizure.LngLatAlt(
+                        trackMarker.addPoint(new altizure.LngLatAlt(
                           center.lng + pt.position.lng -  trackedWayPoints[0].position.lng,
                           center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
-                          altOffset
+                          pt.position.alt
                         ))
                         updateCanvas2d()
                       }
@@ -295,26 +361,32 @@
                       return new altizure.LngLatAlt(
                         center.lng + pt.position.lng -  trackedWayPoints[0].position.lng,
                         center.lat + pt.position.lat - trackedWayPoints[0].position.lat,
-                        altOffset)
+                        pt.position.alt)
                     })
 
                     // create the track marker if the waypoints is >= 2
-                    trackMarker = new altizure.PolyLineMarker({
-                      name: 'tracks',
-                      sandbox: sandbox,
-                      points: points,
-                      color: 0xb73026, // line color
-                      visible: !draw2DTrack,
-                      fenceHeight: 5 // line height (for visualization)
-                    })
-                    updateCanvas2d()
+                    // disable temporarily. It is buggy
+                    // trackMarker = new altizure.PolyCylinderLineMarker({
+                    //   name: 'tracks',
+                    //   sandbox: sandbox,
+                    //   points: points,
+                    //   color: 0xb73026, // line color
+                    //   visible: !draw2DTrack,
+                    //   lineWidth: 2 // line height (for visualization)
+                    // })
                   }
+                  updateCanvas2d()
 
                   // update userTag position, userTag and text are updated everytime pos is updated
+                  // let depthAlt = mainProj.pickDepthMap([{
+                  //   lat: pos.coords.latitude,
+                  //   lng: pos.coords.longitude,
+                  //   alt: altOffset
+                  // }])[0]
                   userTag.setPose({
                       lat: center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat,
                       lng: center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng,
-                      alt: altOffset
+                      alt: depthAlt
                     },
                     undefined,
                     undefined
@@ -325,12 +397,11 @@
                     let currentPos = sandbox.camera.pose
                     currentPos.lat = center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat
                     currentPos.lng = center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng
-                    // sandbox.camera.flyTo(currentPos)
                     sandbox.camera.pose = currentPos
                   }
 
                   // update text for last waypoint and waypoint number
-                  lastWaypointText.innerHTML = '' + (center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat).toPrecision(9) + '; ' + (center.lng + pos.coords.longitude - trackedWayPoints[0].position.lng).toPrecision(9) + '; ' + altOffset
+                  lastWaypointText.innerHTML = '' + (center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat).toPrecision(9) + '; ' + (center.lng + pos.coords.longitude - trackedWayPoints[0].position.lng).toPrecision(9) + '; ' + depthAlt.toPrecision(9)
                   trackText.innerHTML = '' + trackedWayPoints.length
                 },
                 (error) => {
@@ -362,14 +433,10 @@
               trackMarker.destruct()
               trackMarker = null
             }
-            userTag.setPose({
-                lat: center.lat,
-                lng: center.lng,
-                alt: altOffset
-              },
-              undefined,
-              undefined
-            )
+            if (userTag) {
+              userTag.destruct()
+              userTag = null
+            }
           })
         })
       }
