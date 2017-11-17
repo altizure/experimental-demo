@@ -1,0 +1,203 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title> Performance Test </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="./css/style.css">
+    <script type="text/javascript" src="https://www.altizure.cn/sdk"></script>
+    <script type="text/javascript" src="./js/timeline.js"></script>
+  </head>
+  <body>
+    <div id="root">
+      <div class="hud">
+        <div class="component">
+          <div class="componentLabel">Item #:</div>
+          <input type="number" id="itemNumInput" class="numberInput" value='1000'></input>
+          <button class="button button1" id="generateButton">Generate</button>
+        </div>
+        <div class="component">
+          <div class="componentLabel">Camera</div>
+          <button class="button button1" id="orbitbutton">Orbit</button>
+        </div>
+        <div class="component">
+          <div class="componentLabel">Hint:</div>
+          <div class="componentText" id="hintText"> Type a number and click generate to fill the scene </div>
+        </div>
+      </div>
+      <div id="page-content"></div>
+    </div>
+
+    <script>
+      function onPageLoaded () {
+
+        let projects = [
+          {pid: '58428f1d97b73e0b090675cd', text: ''}
+        ]
+
+        const center = {
+          lat:22.335975,
+          lng:114.263718,
+          alt:1020
+        }
+
+        let options = {
+          altizureApi:{
+            key: '7MkQf8UggsPaadvrlKALspJWZejZAJOLHn3cnIy'
+          },
+          camera: {
+            poseTo: { alt:1200,
+              lat: center.lat,
+              lng: center.lng
+            },
+            flyTo: { alt: center.alt,
+              lat: center.lat,
+              lng: center.lng,
+              north: -27.271585092584015,
+              tilt: 74.7023627906978
+            }
+          },
+          renderItems: {
+            earth: true,
+            earthUseTexture: false,
+            featureInView: false,
+            orbitRing: false
+          }
+        }
+
+        let sandbox = new altizure.Sandbox('page-content', options)
+        let pagecontent = document.getElementById("page-content")
+
+        // camera orbit animation
+        let orbitButton = document.getElementById("orbitbutton")
+        let orbitAnimation = null
+        orbitButton.innerHTML = 'Orbit'
+        orbitButton.addEventListener("click", () => {
+          if (orbitButton.innerHTML === 'Orbit') {
+            if (orbitAnimation) {
+              clearInterval(orbitAnimation)
+            }
+            orbitAnimation = setInterval(function() {
+              let currentPos = sandbox.camera.pose
+              currentPos.north += 10
+              sandbox.camera.pose = currentPos
+            }, 500)
+            orbitButton.innerHTML = 'Stop'
+          } else {
+            if (orbitAnimation) {
+              clearInterval(orbitAnimation)
+            }
+            orbitButton.innerHTML = 'Orbit'
+          }
+        })
+
+        // load the project
+        timelineLayout(sandbox, projects, {
+          cameraPos: {
+            lat: 22.334522,
+            lng: 114.263429,
+            alt: 1020
+          },
+          projOffset: {
+            lng: 0,
+            lat: 0
+          },
+          labelOffset: {
+            lng: 0,
+            lat: -0.01
+          },
+          defaultVisible: true,
+          title: '香港科技大学'
+        }).then((entities) => {
+          //////////////////////////
+          // After the scene is loaded, start to initialize all other event handlers
+          //////////////////////////
+
+          let mainProj = entities['0'].proj
+          mainProj.water.import()
+
+          // UI stuffs
+          let itemNumInput = document.getElementById('itemNumInput')
+          let generateButton = document.getElementById('generateButton')
+
+          let markers = []
+
+          function createMarkers(num, sandbox, proj, buttonLeft, topRight) {
+            let newMarkers = []
+            let markerPositions = []
+            for (let i = 0; i < num; ++i) {
+              const labelPosition = {
+                lat: Math.random() * (topRight.lat - buttonLeft.lat) + buttonLeft.lat,
+                lng: Math.random() * (topRight.lng - buttonLeft.lng) + buttonLeft.lng,
+                alt: 10
+              }
+              markerPositions.push(labelPosition)
+            }
+            let markerAlt = proj.pickDepthMap(markerPositions)
+            for (let i = 0; i < num; ++i) {
+              let labelMarker = new altizure.TextTagMarker({
+                // text string
+                text: 'Marker '+i,
+                // text style
+                textStyle: {
+                  fillStyle: 'rgb(255, 255, 255)',
+                  font: 'normal 500 24px Arial',
+                  outlineWidth: 2,
+                  outlineStyle: 'rgb(0, 0, 0)'
+                },
+                // icon position
+                position: {
+                  lat: markerPositions[i].lat,
+                  lng: markerPositions[i].lng,
+                  alt: markerAlt[i]
+                },
+                // scene
+                sandbox: sandbox,
+                visible: true,
+                scale: 6 // icon size
+              })
+              newMarkers.push(labelMarker)
+            }
+            return newMarkers
+          }
+
+          setTimeout(() => {
+            markers = createMarkers(1000, sandbox, mainProj,
+              {
+                lat: 22.324247,
+                lng: 114.254293
+              },
+              {
+                lat: 22.344809,
+                lng: 114.272569
+              }
+            )
+
+            generateButton.addEventListener('click', () => {
+              console.log(itemNumInput.value)
+              if (markers) {
+                for (let i = 0; i < markers.length; ++i) {
+                  let m = markers[i]
+                  m.destruct()
+                  m = null
+                }
+                markers = null
+                markers = createMarkers(itemNumInput.value, sandbox, mainProj,
+                  {
+                    lat: 22.324247,
+                    lng: 114.254293
+                  },
+                  {
+                    lat: 22.344809,
+                    lng: 114.272569
+                  }
+                )
+              }
+
+            })
+          }, 3000)
+        })
+      }
+      document.addEventListener("DOMContentLoaded", onPageLoaded)
+    </script>
+  </body>
+</html>

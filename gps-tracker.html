@@ -265,10 +265,10 @@
                   // insert the waypoints
                   if (trackedWayPoints.length === 0) {
                     // reset the center.lat/lng if the point is inside this data
-                    // 22.340939, 114.259520 ust top left
-                    // 22.330965, 114.269798 ust bottom right
-                    if (pos.coords.latitude >= 22.330965 && pos.coords.latitude <= 22.340939
-                    && pos.coords.longitude >= 114.259520 && pos.coords.longitude <= 114.269798) {
+                    // 22.344809, 114.272569 ust top right
+                    // 22.324247, 114.254293 ust bottom left
+                    if (pos.coords.latitude >= 22.324247 && pos.coords.latitude <= 22.344809
+                    && pos.coords.longitude >= 114.254293 && pos.coords.longitude <= 114.272569) {
                       center.lat = pos.coords.latitude
                       center.lng = pos.coords.longitude
                       hintText.innerHTML = 'Press stop to stop tracking.'
