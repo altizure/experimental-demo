@@ -16,7 +16,7 @@
           <div class="componentLabel">Waypoint #:</div>
           <div class="componentText" id="waypointTrack"> N/A </div>
           <button class="button button1" id="clearTrack">Clear</button>
-          <div class="componentLabel">Show Track</div>
+          <div class="componentLabel">2D Track</div>
           <label class="switch">
             <input type="checkbox" id="track2DSwitch">
             <span class="switchSlider"></span>
@@ -255,15 +255,18 @@
               }
               trackTimer = navigator.geolocation.watchPosition(
                 (pos) => {
-                  let depthAlt = mainProj.pickDepthMap([{
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
-                    alt: altOffset
-                  }])[0]
+
+                  let depthAlt = 0
                   console.log(depthAlt)
 
                   // insert the waypoints
                   if (trackedWayPoints.length === 0) {
+                    depthAlt = mainProj.pickDepthMap([{
+                      lat: pos.coords.latitude,
+                      lng: pos.coords.longitude,
+                      alt: altOffset
+                    }])[0]
+
                     // reset the center.lat/lng if the point is inside this data
                     // 22.344809, 114.272569 ust top right
                     // 22.324247, 114.254293 ust bottom left
@@ -317,6 +320,12 @@
                       })
                     }
                   } else {
+                    depthAlt = mainProj.pickDepthMap([{
+                      lat: center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat,
+                      lng: center.lng + pos.coords.longitude - trackedWayPoints[0].position.lng,
+                      alt: altOffset
+                    }])[0]
+
                     const distance = greatCircleDistance(
                       trackedWayPoints[trackedWayPoints.length-1].position.lat,
                       trackedWayPoints[trackedWayPoints.length-1].position.lng,
@@ -365,24 +374,18 @@
                     })
 
                     // create the track marker if the waypoints is >= 2
-                    // disable temporarily. It is buggy
-                    // trackMarker = new altizure.PolyCylinderLineMarker({
-                    //   name: 'tracks',
-                    //   sandbox: sandbox,
-                    //   points: points,
-                    //   color: 0xb73026, // line color
-                    //   visible: !draw2DTrack,
-                    //   lineWidth: 2 // line height (for visualization)
-                    // })
+                    trackMarker = new altizure.PolyCylinderLineMarker({
+                      name: 'tracks',
+                      sandbox: sandbox,
+                      points: points,
+                      color: 0xb73026, // line color
+                      visible: !draw2DTrack,
+                      lineWidth: 3 // line height (for visualization)
+                    })
                   }
                   updateCanvas2d()
 
                   // update userTag position, userTag and text are updated everytime pos is updated
-                  // let depthAlt = mainProj.pickDepthMap([{
-                  //   lat: pos.coords.latitude,
-                  //   lng: pos.coords.longitude,
-                  //   alt: altOffset
-                  // }])[0]
                   userTag.setPose({
                       lat: center.lat + pos.coords.latitude - trackedWayPoints[0].position.lat,
                       lng: center.lng + pos.coords.longitude -  trackedWayPoints[0].position.lng,
