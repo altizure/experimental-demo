@@ -12,7 +12,11 @@
       <div class="hud">
         <div class="component">
           <div class="componentLabel">Item #:</div>
-          <input type="number" id="itemNumInput" class="numberInput" value='1'></input>
+          <input type="number" id="itemNumInput" class="numberInput" value='100'></input>
+        </div>
+        <div class="component">
+          <div class="componentLabel">Points number for eath marker #:</div>
+          <input type="number" id="pointsNumInput" class="numberInput" value='7'></input>
           <button class="button button1" id="generateButton">Generate</button>
         </div>
         <div class="component">
@@ -92,15 +96,16 @@
 
         // UI stuffs
         let itemNumInput = document.getElementById('itemNumInput')
+        let pointsNumInput = document.getElementById('pointsNumInput')
         let generateButton = document.getElementById('generateButton')
 
         let markers = []
 
-        function createMarkers(num, sandbox, buttonLeft, topRight) {
+        function createMarkers(num, pointNum, sandbox, buttonLeft, topRight) {
           let newMarkers = []
           for (let i = 0; i < num; ++i) {
             let points = []
-            for (let i = 0; i < 6; ++i) {
+            for (let i = 0; i < pointNum; ++i) {
               const labelPosition = {
                 lat: Math.random() * (topRight.lat - buttonLeft.lat) + buttonLeft.lat,
                 lng: Math.random() * (topRight.lng - buttonLeft.lng) + buttonLeft.lng,
@@ -123,7 +128,7 @@
         }
 
         setTimeout(() => {
-          markers = createMarkers(itemNumInput.value, sandbox,
+          markers = createMarkers(itemNumInput.value, pointsNumInput.value, sandbox,
             {
               lat: 22.324247,
               lng: 114.254293
@@ -143,7 +148,7 @@
                 m = null
               }
               markers = null
-              markers = createMarkers(itemNumInput.value, sandbox,
+              markers = createMarkers(itemNumInput.value, pointsNumInput.value, sandbox,
                 {
                   lat: 22.324247,
                   lng: 114.254293
