@@ -1,0 +1,165 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title> Performance Test </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="./css/style.css">
+    <script type="text/javascript" src="https://beta.altizure.com/sdk"></script>
+    <script type="text/javascript" src="./js/timeline.js"></script>
+  </head>
+  <body>
+    <div id="root">
+      <div class="hud">
+        <div class="component">
+          <div class="componentLabel">Item #:</div>
+          <input type="number" id="itemNumInput" class="numberInput" value='1'></input>
+          <button class="button button1" id="generateButton">Generate</button>
+        </div>
+        <div class="component">
+          <div class="componentLabel">Camera</div>
+          <button class="button button1" id="orbitbutton">Orbit</button>
+        </div>
+        <div class="component">
+          <div class="componentLabel">Hint:</div>
+          <div class="componentText" id="hintText"> Type a number and click generate PolyCylinderLineMarker to fill the scene </div>
+        </div>
+      </div>
+      <div id="page-content"></div>
+    </div>
+
+    <script>
+      function onPageLoaded () {
+
+        let projects = [
+          {pid: '58428f1d97b73e0b090675cd', text: ''}
+        ]
+
+        const center = {
+          lat:22.335975,
+          lng:114.263718,
+          alt:1020
+        }
+
+        let options = {
+          altizureApi:{
+            key: '7MkQf8UggsPaadvrlKALspJWZejZAJOLHn3cnIy'
+          },
+          camera: {
+            poseTo: { alt:1200,
+              lat: center.lat,
+              lng: center.lng
+            },
+            flyTo: { alt: center.alt,
+              lat: center.lat,
+              lng: center.lng,
+              north: -27.271585092584015,
+              tilt: 74.7023627906978
+            }
+          },
+          renderItems: {
+            earth: true,
+            earthUseTexture: false,
+            featureInView: false,
+            orbitRing: false
+          }
+        }
+
+        let sandbox = new altizure.Sandbox('page-content', options)
+        let pagecontent = document.getElementById("page-content")
+
+        // camera orbit animation
+        let orbitButton = document.getElementById("orbitbutton")
+        let orbitAnimation = null
+        orbitButton.innerHTML = 'Orbit'
+        orbitButton.addEventListener("click", () => {
+          if (orbitButton.innerHTML === 'Orbit') {
+            if (orbitAnimation) {
+              clearInterval(orbitAnimation)
+            }
+            orbitAnimation = setInterval(function() {
+              let currentPos = sandbox.camera.pose
+              currentPos.north += 10
+              sandbox.camera.pose = currentPos
+            }, 500)
+            orbitButton.innerHTML = 'Stop'
+          } else {
+            if (orbitAnimation) {
+              clearInterval(orbitAnimation)
+            }
+            orbitButton.innerHTML = 'Orbit'
+          }
+        })
+
+        // UI stuffs
+        let itemNumInput = document.getElementById('itemNumInput')
+        let generateButton = document.getElementById('generateButton')
+
+        let markers = []
+
+        function createMarkers(num, sandbox, buttonLeft, topRight) {
+          let newMarkers = []
+          for (let i = 0; i < num; ++i) {
+            let points = []
+            for (let i = 0; i < 6; ++i) {
+              const labelPosition = {
+                lat: Math.random() * (topRight.lat - buttonLeft.lat) + buttonLeft.lat,
+                lng: Math.random() * (topRight.lng - buttonLeft.lng) + buttonLeft.lng,
+                alt: Math.random() * (1500 - 0)
+              }
+              points.push(labelPosition)
+            }
+            let lineMarker = new altizure.PolyCylinderLineMarker({
+              // scene
+              sandbox: sandbox,
+              points: points,
+              color: 0xb73026,
+              lineWidth: 1, // line width of the linemarker
+              labelsVisible: false, // whether to show labels
+              visible: true
+            })
+            newMarkers.push(lineMarker)
+          }
+          return newMarkers
+        }
+
+        setTimeout(() => {
+          markers = createMarkers(itemNumInput.value, sandbox,
+            {
+              lat: 22.324247,
+              lng: 114.254293
+            },
+            {
+              lat: 22.344809,
+              lng: 114.272569
+            }
+          )
+
+          generateButton.addEventListener('click', () => {
+            console.log(itemNumInput.value)
+            if (markers) {
+              for (let i = 0; i < markers.length; ++i) {
+                let m = markers[i]
+                m.destruct()
+                m = null
+              }
+              markers = null
+              markers = createMarkers(itemNumInput.value, sandbox,
+                {
+                  lat: 22.324247,
+                  lng: 114.254293
+                },
+                {
+                  lat: 22.344809,
+                  lng: 114.272569
+                }
+              )
+            }
+
+          })
+        }, 3000)
+
+      }
+      document.addEventListener("DOMContentLoaded", onPageLoaded)
+    </script>
+  </body>
+</html>
