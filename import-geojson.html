@@ -1,0 +1,402 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title> Import And Visualize GeoJson </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script type="text/javascript" src="https://beta.altizure.com/sdk"></script>
+  </head>
+  <body>
+    <div id="page-content"></div>
+    <script>
+      let options = {
+        altizureApi:{
+          key: '7MkQf8UggsPaadvrlKALspJWZejZAJOLHn3cnIy'
+        },
+        renderItems: {
+          earth: true,
+          earthUseTexture: true,
+          featureInView: false,
+          orbitRing: false
+        }
+      }
+
+      let sandbox = new altizure.Sandbox('page-content', options)
+      sandbox.camera.flyTo({lng: 114.26389759274555, lat: 22.3369102228582, alt: 5772.141840522206, north: 0, tilt: 0})
+    </script>
+    <script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="js/osmtogeojson.js"></script>
+    <script>
+      let geojson
+      function queryForGeoJson (lowerLng, lowerLat, higherLng, higherLat) {
+        return new Promise((resolve, reject) => {
+          clearVisualization()
+          visualizeBBOX([lowerLng, higherLng], [lowerLat, higherLat])
+          let bboxString = '(' + lowerLat + ',' + lowerLng + ',' + higherLat + ',' + higherLng + ')'
+          let query = '(node' + bboxString + ';way' + bboxString + ';);out;'
+          // let query = '(node' + bboxString + ';way' + bboxString + ';>;);out;'
+          // let query = '(node' + bboxString + ';way' + bboxString + ';);(._;>;);out;'
+          $.ajax({
+            url:
+              'http://overpass-api.de/api/interpreter?data=[out:json][timeout:60];' + query,
+            dataType: 'json',
+            type: 'GET',
+            async: true,
+            crossDomain: true
+          }).done(function ( data, textStatus, jqXHR ) {
+            geojson = osmtogeojson(data)
+            // console.log('second success', data, geojson, textStatus, jqXHR)
+            console.log('success')
+            resolve(geojson)
+          }).fail(function (jqXHR, textStatus, errorThrown) {
+            console.log('error', jqXHR, textStatus, errorThrown)
+            reject(textStatus)
+          }).always(function () {
+            // console.log('complete')
+          })
+        })
+      }
+      let bboxMarkers = []
+      function visualizeBBOX (lngArray, latArray) {
+        for (let i = 0; i < 2; ++i) {
+          for (let j = 0; j < 2; ++j) {
+            let index = j * 2 + i
+            let lng = lngArray[i]
+            let lat = latArray[j]
+            if (bboxMarkers[index]) {
+              bboxMarkers[index].text = Math.floor(lng * 100) / 100 + ',' + Math.floor(lat * 100) / 100
+              bboxMarkers[index].position = {
+                lng: lng, lat: lat, alt: 0.1
+              }
+            } else {
+              bboxMarkers[index] = new altizure.TextTagMarker({
+                text: Math.floor(lng * 100) / 100 + ',' + Math.floor(lat * 100) / 100,
+                textStyle: {
+                  fillStyle: 'rgb(155, 155, 255)',
+                  font: 'normal 500 48px Arial',
+                  outlineWidth: 2,
+                  outlineStyle: 'rgb(0, 0, 0)'
+                },
+                position: new altizure.LngLatAlt(lng, lat, 0.1),
+                sandbox: sandbox,
+                pinLength: 100,
+                scale: 10
+              })
+            }
+          }
+        }
+      }
+      let polygonMarkers = []
+      let linestringMarkers = []
+      let pointMarkers = []
+      let markerFeatureMap = {}
+      function clearVisualization () {
+        polygonMarkers.map((polygon) => {polygon.destruct()})
+        linestringMarkers.map((linestring) => {linestring.destruct()})
+        pointMarkers.map((point) => {point.destruct()})
+        polygonMarkers = []
+        linestringMarkers = []
+        pointMarkers = []
+        markerFeatureMap = {}
+      }
+      function visualizeGeoJson (geojson, visualizeSetting) {
+        let features = geojson.features
+        for (let i = 0; i < features.length; ++i) {
+          let feature = features[i]
+          try {
+            if (feature.geometry.type === 'Polygon') {
+              visualizePolygon(feature)
+            } else if (feature.geometry.type === 'LineString') {
+              visualizeLineString(feature)
+            } else if (feature.geometry.type === 'Point') {
+              visualizePoint(feature)
+            }
+          } catch (e) {
+            continue
+          }
+        }
+
+        pointMarkers.map((point) => {
+          point.visible = visualizeSetting.showPoint
+        })
+        polygonMarkers.map((polygon) => {
+          // polygon.extrudeMesh.material.depthWrite = false
+          polygon.visible = visualizeSetting.showPolygon
+        })
+        linestringMarkers.map((linestring) => {
+          linestring.visible = visualizeSetting.showLineString
+        })
+      }
+      function visualizePolygon (feature) {
+        let geometry = feature.geometry
+        for (let i = 0; i < geometry.coordinates.length; ++i) {
+          if (geometry.coordinates[i].length < 4) return
+        }
+        let points = [
+          {hole: false, array: geometry.coordinates[0].map((pt) => { return new altizure.LngLatAlt(pt[0], pt[1], 0) })}
+        ]
+        for (let i = 1; i < geometry.coordinates.length; ++i) {
+          points.push({
+            hole: true, array: geometry.coordinates[i].map((pt) => { return new altizure.LngLatAlt(pt[0], pt[1], 0) })
+          })
+        }
+        let hasTopCover = feature.properties.tags.building !== undefined && feature.properties.tags.building !== null
+        let polygonMarker = new altizure.PolygonMarker({
+          sandbox: sandbox,
+          volume: {
+            hasTopCover: hasTopCover,
+            points: points,
+            top: 4,
+            bottom: 0.1,
+            color: 0xffffff * Math.random(),
+            opacity: 0.2
+          }
+        })
+        polygonMarkers.push(polygonMarker)
+        markerFeatureMap[polygonMarker.ID] = feature
+      }
+      function visualizeLineString (feature) {
+        let geometry = feature.geometry
+        let points = geometry.coordinates.map((pt) => { return new altizure.LngLatAlt(pt[0], pt[1], 2.1) })
+        let linestringMarker = new altizure.PolyCylinderLineMarker({
+          points: points,
+          sandbox: sandbox,
+          color: 0xff0000,
+          opacity: 1.0,
+          lineWidth: 3,
+          depthTest: true
+        })
+        linestringMarkers.push(linestringMarker)
+        markerFeatureMap[linestringMarker.ID] = feature        
+      }
+      function visualizePoint (feature) {
+        let geometry = feature.geometry
+        let point = new altizure.LngLatAlt(geometry.coordinates[0], geometry.coordinates[1], 0.1)
+        let name = feature.properties.tags.name
+        // let text = name ? name : '?'
+        let pointMarker = new altizure.TextTagMarker({
+          text: '?',
+          textStyle: {
+            fillStyle: 'rgb(155, 155, 255)',
+            font: 'normal 500 48px Arial',
+            outlineWidth: 2,
+            outlineStyle: 'rgb(0, 0, 0)'
+          },
+          position: point,
+          sandbox: sandbox,
+          pinLength: 50,
+          scale: 1
+        })
+        pointMarkers.push(pointMarker)
+        markerFeatureMap[pointMarker.ID] = feature        
+      }
+    </script>
+    <script type="text/javascript" src="js/dat.gui.js"></script>
+    <script>
+      var BoundarySettings = function () {
+        this.minLng = '114.26'
+        this.minLat = '22.33'
+        this.maxLng = '114.27'
+        this.maxLat = '22.34'
+        this.visualizeBoundary = () => {
+          if (!this._validateBoundary()) return
+          let minLng = parseFloat(this.minLng)
+          let minLat = parseFloat(this.minLat)
+          let maxLng = parseFloat(this.maxLng)
+          let maxLat = parseFloat(this.maxLat)
+          visualizeBBOX([minLng, maxLng], [minLat, maxLat])
+        }
+        this.queryAndVisualize = () => {
+          if (!this._validateBoundary()) return
+          let minLng = parseFloat(this.minLng)
+          let minLat = parseFloat(this.minLat)
+          let maxLng = parseFloat(this.maxLng)
+          let maxLat = parseFloat(this.maxLat)
+          queryForGeoJson(minLng, minLat, maxLng, maxLat)
+          .then((thegeojson) => {
+            visualizeGeoJson(thegeojson, {
+              showPoint: this.showPoint,
+              showLineString: this.showLineString,
+              showPolygon: this.showPolygon
+            })
+            pointMarkers.map((point) => {
+              point.interactable = true
+              point.on('click', (event) => {
+                let feature = markerFeatureMap[point.ID]
+                let name = feature.properties.tags.name ? feature.properties.tags.name : 'no name'
+                point.text = point.text === '?' ? name : '?'
+                let pointposition = point.position
+                let positionstr = pointposition.lng + ', ' + pointposition.lat
+                refreshMessage(
+                  Object.assign({}, {position: positionstr}, feature.properties.tags)
+                )
+              })
+            })
+            linestringMarkers.map((linestring) => {
+              linestring.interactable = true
+              linestring.on('mouseenter', (event) => {
+                linestring.depthTest = false
+                linestring.color = 0x0000ff
+              })
+              linestring.on('mouseleave', (event) => {
+                linestring.depthTest = true
+                linestring.color = 0xff0000
+              })
+              linestring.on('click', (event) => {
+                let feature = markerFeatureMap[linestring.ID]
+                refreshMessage(
+                  Object.assign({}, feature.properties.tags)
+                )
+              })
+            })
+            polygonMarkers.map((polygon) => {
+              polygon.interactable = true
+              polygon.on('click', (event) => {
+                polygon.opacity = polygon.opacity > 0.5 ? 0.2 : 0.8
+                let feature = markerFeatureMap[polygon.ID]
+                refreshMessage(
+                  Object.assign({}, feature.properties.tags)
+                )
+              })
+            })
+          })
+        }
+        this._validateBoundary = () => {
+          let minLng = parseFloat(this.minLng)
+          let minLat = parseFloat(this.minLat)
+          let maxLng = parseFloat(this.maxLng)
+          let maxLat = parseFloat(this.maxLat)
+          if (Math.abs(maxLat - minLat) > 0.02 || Math.abs(maxLng - minLng) > 0.02) {
+            console.warn('the Longtitude and the Latitude differences should be smaller or equal to 0.2')
+            return false
+          }
+          return true
+        }
+
+        this.showPoint = true
+        this.showLineString = true
+        this.showPolygon = true
+
+        this.msgObject = {}
+      }
+      let setting = new BoundarySettings()
+
+      var gui = new dat.GUI({autoplace: false, width: 370})
+      let geojsonBoundaryFolder = gui.addFolder('GeoJSON Boundary')
+      geojsonBoundaryFolder.open()
+      geojsonBoundaryFolder.add(setting, 'queryAndVisualize').name('Visualize GeoJSON')
+      geojsonBoundaryFolder.add(setting, 'visualizeBoundary').name('Visualize Boundary')
+      addEntry(geojsonBoundaryFolder, setting, 'minLng', 'Min Longtitude')
+      addEntry(geojsonBoundaryFolder, setting, 'minLat', 'Min Latitude')
+      addEntry(geojsonBoundaryFolder, setting, 'maxLng', 'Max Longtitude')
+      addEntry(geojsonBoundaryFolder, setting, 'maxLat', 'Min Latitude')
+      let adjustvisualizationFolder = gui.addFolder('Adjust Visualization')
+      addEntry(adjustvisualizationFolder, setting, 'showPoint', 'Show Point',
+        (value) => {
+          setting['showPoint'] = value
+          pointMarkers.map((point) => {
+            point.visible = value
+          })
+        }
+      )
+      addEntry(adjustvisualizationFolder, setting, 'showPolygon', 'Show Polygon',
+        (value) => {
+          setting['showPolygon'] = value
+          polygonMarkers.map((polygon) => {
+            polygon.visible = value
+          })
+        }
+      )
+      addEntry(adjustvisualizationFolder, setting, 'showLineString', 'Show Line',
+        (value) => {
+          setting['showLineString'] = value
+          linestringMarkers.map((linestring) => {
+            linestring.visible = value
+          })
+        }
+      )
+
+      let msgFolder = gui.addFolder('Message')
+      msgFolder.open()
+
+      function addEntry (folder, properties, key, name, onChangeFunc) {
+        let controller = folder.add(properties, key)
+        controller.name(name)
+        if (onChangeFunc) {
+          controller.onChange(onChangeFunc)
+        } else {
+          controller.onChange((value) => {
+            properties[key] = value
+          })
+        }
+      }
+      dat.GUI.prototype.removeFolder = function(name) {
+        var folder = this.__folders[name];
+        if (!folder) {
+          return;
+        }
+        folder.close();
+        this.__ul.removeChild(folder.domElement.parentNode);
+        delete this.__folders[name];
+        this.onResize();
+      }
+      function refreshMessage (tags) {
+        gui.removeFolder('Message')
+        let msgFolder = gui.addFolder('Message')
+        msgFolder.open()
+        for (key in tags) {
+          msgFolder.add(tags, key)
+        }
+      }
+    </script>
+    <!-- <script>
+      // test script
+      function raisePolygon1 () {
+        polygonMarkers.map((polygon) => {
+          let pos = polygon.position
+          pos.alt = 0
+          polygon.position = pos
+          polygon.top = 20
+          polygon.bottom = 10
+        })
+      }
+      function raisePolygon2 () {
+        polygonMarkers.map((polygon) => {
+          let pos = polygon.position
+          pos.alt = 10
+          polygon.position = pos
+          polygon.top = 10
+          polygon.bottom = 0
+        })
+      }
+      document.addEventListener('click', (event) => {
+        console.log(sandbox.window.toLngLatAlt(event))
+      })
+      let pointMarker1 = new altizure.TextTagMarker({
+        text: '?',
+        textStyle: {
+          fillStyle: 'rgb(155, 155, 255)',
+          font: 'normal 500 48px Arial',
+          outlineWidth: 2,
+          outlineStyle: 'rgb(0, 0, 0)'
+        },
+        position: {lng: 114.26749117631522, lat: 22.33246212865424, alt: 0},
+        sandbox: sandbox,
+        pinLength: 10,
+        scale: 1
+      })
+      let pointMarker2 = new altizure.TextTagMarker({
+        text: '?',
+        textStyle: {
+          fillStyle: 'rgb(155, 155, 255)',
+          font: 'normal 500 48px Arial',
+          outlineWidth: 2,
+          outlineStyle: 'rgb(0, 0, 0)'
+        },
+        position: {lng: 114.26738985423738, lat: 22.332371547987226, alt: 0},
+        sandbox: sandbox,
+        pinLength: 20,
+        scale: 1
+      })
+    </script> -->
+  </body>
+</html>
