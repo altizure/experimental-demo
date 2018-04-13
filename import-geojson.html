@@ -37,7 +37,7 @@
           // let query = '(node' + bboxString + ';way' + bboxString + ';);(._;>;);out;'
           $.ajax({
             url:
-              'http://overpass-api.de/api/interpreter?data=[out:json][timeout:60];' + query,
+              'https://overpass-api.de/api/interpreter?data=[out:json][timeout:60];' + query,
             dataType: 'json',
             type: 'GET',
             async: true,
