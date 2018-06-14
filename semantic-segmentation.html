@@ -1,0 +1,194 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title> Altizure segmentation </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  </head>
+  <body style="margin: 0px; padding: 0px;">
+    <div id="page-content"></div>
+    <script type="text/javascript" src="https://beta.altizure.cn/sdk"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+      let options = {
+        altizureApi:{
+          key: '7MkQf8UggsPaadvrlKALspJWZejZAJOLHn3cnIy'
+        },
+        camera: {
+          poseTo: { alt:100000,
+            lat:22.538388886344876,
+            lng:113.94255600866971 },
+          flyTo: { alt:1020.0739295752213,
+            lat:22.538388886344876,
+            lng:113.94255600866971,
+            north:-27.271585092584015,
+            tilt:74.7023627906978 }
+        },
+        renderItems: {
+          earth: true,
+          earthUseTexture: true,
+          featureInView: false,
+          orbitRing: true
+        }
+      }
+
+      let sandbox = new altizure.Sandbox('page-content', options)
+      let altmarker
+      sandbox.add('AltizureProjectMarker', {pid: '5b1dfee8f8437c6f7d61e14d'})
+      .then((m) => {
+        altmarker = m
+        sandbox.camera.lookAt(altmarker, 0, 0, undefined)
+        setUpUI(altmarker)
+      })
+
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.1/dat.gui.min.js"></script>
+    <script>
+      dat.GUI.prototype.removeFolder = function(name) {
+        var folder = this.__folders[name];
+        if (!folder) {
+          return;
+        }
+        folder.close();
+        this.__ul.removeChild(folder.domElement.parentNode);
+        delete this.__folders[name];
+        this.onResize();
+      }
+    </script>
+    <script>
+      var gui, properties = {}
+      function setUpUI (altmarker) {
+        // global properties
+        properties.geojson = null
+        properties.polygons = []
+        // start ui
+        gui = new dat.GUI()
+        // load the geojson
+        $.getJSON('./others/data.json', (data) => {
+          properties.geojson = data
+          properties.polygons.map((poly) => poly.destruct())
+          gui.removeFolder('polygon')
+          properties.polygons = sandbox.polygonsFromGeoJson(data, {top: 200, bottom: 0.1, opacity: 0.3, color: 0x12124d})
+          properties.polygons.map((poly, i) => {
+            poly.top = data.features[i].geometry.top
+            poly.bottom = data.features[i].geometry.bottom
+          })
+          setPolygonInteractions(altmarker)
+        })
+        // set attributes for all polygons folder
+        let globalPolygonsFolder = gui.addFolder('All Polygons')
+        properties.color = 0x12124d
+        globalPolygonsFolder.addColor(properties, 'color').onChange((v) => {
+          properties.color = v
+          properties.polygons.map((poly) => poly.color = v)
+        })
+        properties.opacity = 0.3
+        globalPolygonsFolder.add(properties, 'opacity', 0, 1, 0.01).onChange((v) => {
+          properties.opacity = v
+          properties.polygons.map((poly) => poly.opacity = v)
+        })
+        properties.autoAdjust = () => {
+          properties.polygons.map((poly) => (
+            adjustPolygon(altmarker, poly)
+          ))
+        }
+        globalPolygonsFolder.add(properties, 'autoAdjust')
+        properties.top = 200
+        globalPolygonsFolder.add(properties, 'top', 0, 500, 1).onChange((v) => {
+          properties.top = v
+          properties.polygons.map((poly) => poly.top = v)
+        })
+        properties.bottom = 0.1
+        globalPolygonsFolder.add(properties, 'bottom', 0, 500, 1).onChange((v) => {
+          properties.bottom = v
+          properties.polygons.map((poly) => poly.bottom = v)
+        })
+      }
+
+      function setPolygonInteractions (altmarker) {
+        // set polygon interactions for polygons
+        properties.polygons.map((poly) => {
+          let settings = {
+            top: poly.top, bottom: poly.bottom,
+            color: colorInt(poly.color), opacity: poly.opacity,
+            delete: () => {
+              if (poly) {
+                poly.destruct()
+                for (let i = 0; i < properties.polygons.length; ++i) {
+                  if (properties.polygons[i].ID === poly.ID) {
+                    properties.polygons.splice(i, 1)
+                    break
+                  }
+                }
+              }
+              gui.removeFolder('polygon')
+            },
+            autoAdjust: () => {
+              adjustPolygon(altmarker, poly)
+              settings.top = poly.top
+              settings.bottom = poly.bottom
+            }
+          }
+          poly.interactable = true
+          poly.on('click', (e) => {
+            settings.top = poly.top
+            settings.bottom = poly.bottom
+            settings.color = colorInt(poly.color)
+            settings.opacity = poly.opacity
+            poly._activated = poly._activated ? false : true
+            gui.removeFolder('polygon')
+            if (poly._activated) {
+              let polygonFolder = gui.addFolder('polygon')
+              polygonFolder.open()
+              polygonFolder.addColor(settings, 'color').onChange((v) => {
+                let c = colorInt(v)
+                settings.color = c
+                poly.color = c
+              }).listen()
+              polygonFolder.add(settings, 'opacity', 0, 1, 0.01).onChange((v) => {
+                settings.opacity = v
+                poly.opacity = v
+              }).listen()
+              polygonFolder.add(settings, 'autoAdjust')
+              polygonFolder.add(settings, 'top', 0, 500, 1).onChange((v) => {
+                settings.top = v
+                poly.top = v
+              }).listen()
+              polygonFolder.add(settings, 'bottom', 0, 500, 1).onChange((v) => {
+                settings.bottom = v
+                poly.bottom = v
+              }).listen()
+              polygonFolder.add(settings, 'delete')
+            }
+          })
+        })
+
+        function colorInt (v) {
+          let c = v
+          if (typeof v === 'object') c = v.r * 256 * 256 + v.g * 256 + v.b
+          return c
+        }
+      }
+
+      function adjustPolygon (altmarker, poly) {
+        let minHeight = altmarker.position.alt
+        let maxHeight = altmarker.position.alt + altmarker.projInfo.max_bound.z - altmarker.projInfo.min_bound.z
+        let depthmap = sandbox.markerSnapshot(poly.boundaryPts, {min: minHeight, max: maxHeight}, [altmarker.contentHolder], true, 1024)
+        let min = undefined
+        let max = undefined
+        depthmap.buffer.map((v) => {
+          if (v !== undefined && v !== 255) {
+            if (min === undefined) min = v
+            if (max === undefined) max = v
+            min = min > v ? v : min
+            max = max < v ? v : max
+          }
+        })
+        min = (1 - min / 255) * (maxHeight - minHeight) + minHeight
+        max = (1 - max / 255) * (maxHeight - minHeight) + minHeight
+        poly.top = min > max ? min + 0.1 : max + 0.1
+        poly.bottom = min < max ? min - 0.1 : max - 0.1
+      }
+
+    </script>
+  </body>
+</html>
