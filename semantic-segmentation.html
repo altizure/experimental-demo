@@ -7,6 +7,7 @@
   <body style="margin: 0px; padding: 0px;">
     <div id="page-content"></div>
     <script type="text/javascript" src="https://beta.altizure.cn/sdk"></script>
+    <script src="https://unpkg.com/altizure-plugin-geojson"></script>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script>
       let options = {
@@ -67,7 +68,7 @@
           properties.geojson = data
           properties.polygons.map((poly) => poly.destruct())
           gui.removeFolder('polygon')
-          properties.polygons = sandbox.polygonsFromGeoJson(data, {top: 200, bottom: 0.1, opacity: 0.3, color: 0x12124d})
+          properties.polygons = altizure.GeoJson.polygonsFromGeoJson(data, sandbox, {top: 200, bottom: 0.1, opacity: 0.3, color: 0x12124d})
           properties.polygons.map((poly, i) => {
             poly.top = data.features[i].geometry.top
             poly.bottom = data.features[i].geometry.bottom
